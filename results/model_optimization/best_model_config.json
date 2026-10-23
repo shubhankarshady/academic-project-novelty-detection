@@ -1,0 +1,17 @@
+{
+  "best_model_family": "GradientBoosting",
+  "best_feature_set": "TF-IDF only",
+  "hyperparameters": "n_estimators=100, max_depth=3, lr=0.1",
+  "mean_rmse": 0.6487398412666563,
+  "std_rmse": 0.09659960484415396,
+  "mean_mae": 0.46320426563560463,
+  "std_mae": 0.07313548252323655,
+  "mean_r2": 0.7750277402214572,
+  "std_r2": 0.07150845615615156,
+  "mean_spearman": 0.7904564038704488,
+  "std_spearman": 0.03066905535621887,
+  "evaluation_protocol": "5-Fold Project-Disjoint Cross-Validation",
+  "data_file": "data/processed/similarity_pairs_clean.csv",
+  "n_pairs": 2996,
+  "synthetic_benchmark_note": "Evaluated against synthetic benchmark labels; not real-world faculty validated."
+}

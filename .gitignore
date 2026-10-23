@@ -7,3 +7,7 @@ __pycache__/
 models/*.pt
 models/*.pth
 models/*.bin
+
+# SQLite temporary journal files
+*.db-shm
+*.db-wal

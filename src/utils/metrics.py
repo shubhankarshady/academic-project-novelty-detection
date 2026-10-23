@@ -97,7 +97,7 @@ def calculate_novelty_score(predicted_similarity_label: float | np.ndarray) -> f
 def get_novelty_level(novelty_score_pct: float) -> str:
     """Classify novelty percentage into human-readable risk category."""
     if novelty_score_pct >= 75.0:
-        return "High Novelty (Original Work)"
+        return "High estimated novelty relative to the current database"
     elif novelty_score_pct >= 50.0:
         return "Moderate Novelty (Partial Overlap)"
     elif novelty_score_pct >= 25.0:

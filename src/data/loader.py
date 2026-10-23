@@ -13,11 +13,14 @@ def load_projects(filepath: str | Path) -> pd.DataFrame:
     return df
 
 def load_similarity_pairs(filepath: str | Path) -> pd.DataFrame:
-    """Load project similarity pairs Excel file."""
+    """Load project similarity pairs Excel or CSV file."""
     filepath = Path(filepath)
     if not filepath.exists():
         raise FileNotFoundError(f"Similarity pairs dataset not found at {filepath}")
     
+    if filepath.suffix.lower() == ".csv":
+        return pd.read_csv(filepath)
+        
     excel_file = pd.ExcelFile(filepath)
     sheet = "SimilarityPairs" if "SimilarityPairs" in excel_file.sheet_names else excel_file.sheet_names[0]
     df = pd.read_excel(excel_file, sheet_name=sheet)

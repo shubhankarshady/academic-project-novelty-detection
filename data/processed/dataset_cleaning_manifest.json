@@ -1,0 +1,74 @@
+{
+  "dataset_name": "Academic Project Similarity Benchmark",
+  "provenance": "Synthetic Benchmark Dataset",
+  "synthetic_limitation": "SYNTHETIC BENCHMARK LABEL \u2014 must be replaced/validated by faculty annotation before publication.",
+  "cleaning_timestamp": "2026-10-22T17:05:00+05:30",
+  "row_counts": {
+    "before_cleaning": 3000,
+    "rows_removed": 4,
+    "after_cleaning": 2996
+  },
+  "removed_rows": [
+    {
+      "pair_id": "PAIR-1819",
+      "project_A_id": "SYN-0524",
+      "project_B_id": "SYN-0451",
+      "expert_similarity_label": 0,
+      "similarity_category": "Not Similar",
+      "baseline_lexical_overlap_proxy": 0.7838,
+      "retained_counterpart": "PAIR-1324",
+      "reason": "Exact duplicate of PAIR-1324 (identical project_A_id and project_B_id)"
+    },
+    {
+      "pair_id": "PAIR-2023",
+      "project_A_id": "SYN-0130",
+      "project_B_id": "SYN-0097",
+      "expert_similarity_label": 0,
+      "similarity_category": "Not Similar",
+      "baseline_lexical_overlap_proxy": 0.7632,
+      "retained_counterpart": "PAIR-0432",
+      "reason": "Reversed duplicate of PAIR-0432 (SYN-0097 vs SYN-0130)"
+    },
+    {
+      "pair_id": "PAIR-2195",
+      "project_A_id": "SYN-0165",
+      "project_B_id": "SYN-0249",
+      "expert_similarity_label": 0,
+      "similarity_category": "Not Similar",
+      "baseline_lexical_overlap_proxy": 0.7436,
+      "retained_counterpart": "PAIR-1401",
+      "reason": "Reversed duplicate of PAIR-1401 (SYN-0249 vs SYN-0165)"
+    },
+    {
+      "pair_id": "PAIR-2957",
+      "project_A_id": "SYN-0538",
+      "project_B_id": "SYN-0174",
+      "expert_similarity_label": 0,
+      "similarity_category": "Not Similar",
+      "baseline_lexical_overlap_proxy": 0.6829,
+      "retained_counterpart": "PAIR-2588",
+      "reason": "Reversed duplicate of PAIR-2588 (SYN-0174 vs SYN-0538)"
+    }
+  ],
+  "label_distribution_before": {
+    "0": 1336,
+    "1": 334,
+    "2": 514,
+    "3": 581,
+    "4": 235
+  },
+  "label_distribution_after": {
+    "0": 1332,
+    "1": 334,
+    "2": 514,
+    "3": 581,
+    "4": 235
+  },
+  "validation_passed": {
+    "no_self_pairs": true,
+    "no_duplicate_undirected_pairs": true,
+    "no_missing_values": true,
+    "no_invalid_project_ids": true,
+    "label_consistency_verified": true
+  }
+}

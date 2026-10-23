@@ -1,0 +1,50 @@
+{
+  "model_architecture": "Ridge Regression",
+  "hyperparameters": {
+    "alpha": 10.0,
+    "random_state": 42
+  },
+  "feature_channel": "TF-IDF Section Similarity (8 sections)",
+  "ngram_range": [
+    1,
+    2
+  ],
+  "holdout_evaluation_metrics": {
+    "rmse": 0.7733524201640593,
+    "mae": 0.5648220273355643,
+    "r2": 0.6676854025644408,
+    "pearson_r": 0.823703981077415,
+    "spearman_rho": 0.7508412415149452
+  },
+  "sample_counts": {
+    "train_projects": 480,
+    "test_projects": 120,
+    "train_pairs": 1916,
+    "test_pairs": 120,
+    "cross_boundary_pairs_excluded": 960
+  },
+  "learned_parameters": {
+    "intercept": -0.1105506420135498,
+    "coefficients": {
+      "title_similarity": 0.1445724070072174,
+      "abstract_similarity": 0.49840882420539856,
+      "problem_similarity": 0.12877599895000458,
+      "objectives_similarity": 0.2233504354953766,
+      "methodology_similarity": 0.0013318214332684875,
+      "dataset_similarity": 1.93520188331604,
+      "algorithm_similarity": -0.06942103803157806,
+      "technology_similarity": -0.14528822898864746
+    }
+  },
+  "section_vocab_sizes": {
+    "title": 450,
+    "abstract": 454,
+    "problem": 199,
+    "objectives": 188,
+    "methodology": 227,
+    "dataset": 83,
+    "algorithm": 19,
+    "technology": 89
+  },
+  "synthetic_benchmark_limitation": "All similarity labels in this dataset are synthetic benchmarks generated via heuristic rules. These metrics quantify model consistency and mathematical generalization on synthetic benchmark data, and do NOT constitute real-world faculty-validated novelty detection accuracy."
+}
