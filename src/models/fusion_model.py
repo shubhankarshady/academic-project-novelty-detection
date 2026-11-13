@@ -71,23 +71,40 @@ class ConstrainedSectionFusion:
         self.weights = weights
         return self
 
+    @property
+    def coef_(self):
+        if self.weights is None:
+            return None
+        return 4.0 * self.weights
+
+    @property
+    def intercept_(self):
+        return 0.0
+
     def predict(self, X):
         if self.weights is None:
             raise RuntimeError("Model has not been fitted.")
 
         X = np.asarray(X, dtype=float)
+        is_1d = X.ndim == 1
+        if is_1d:
+            X = X.reshape(1, -1)
 
         if X.ndim != 2 or X.shape[1] != len(self.weights):
             raise ValueError("X has the wrong number of features.")
 
-        return np.clip(4.0 * (X @ self.weights), 0.0, 4.0)
+        preds = np.clip(4.0 * (X @ self.weights), 0.0, 4.0)
+        return float(preds[0]) if is_1d else preds
 
     def save(self, filepath):
         joblib.dump(self, filepath)
 
     @classmethod
     def load(cls, filepath):
-        return joblib.load(filepath)
+        artifact = joblib.load(filepath)
+        if isinstance(artifact, dict) and "model" in artifact:
+            return artifact["model"]
+        return artifact
 
 
 class SectionFusionRegressor:

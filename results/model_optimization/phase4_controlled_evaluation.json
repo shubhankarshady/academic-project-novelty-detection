@@ -1,0 +1,330 @@
+[
+  {
+    "case_id": "CASE_A_EXACT_COPY",
+    "case_name": "Exact Copy of Reference Proposal",
+    "target_ref_id": "SYN-0001",
+    "expected_relationship": "Duplicate",
+    "prod_ridge_tfidf": {
+      "similarity": 2.5768,
+      "novelty_pct": 35.58,
+      "target_rank": 6,
+      "top_1_id": "SYN-0157",
+      "top_1_sim": 2.6551
+    },
+    "cand_constrained_tfidf": {
+      "similarity": 4.0,
+      "novelty_pct": 0.0,
+      "target_rank": 1,
+      "top_1_id": "SYN-0001",
+      "top_1_sim": 4.0
+    },
+    "semantic_only": {
+      "similarity": 4.0,
+      "novelty_pct": 0.0,
+      "target_rank": 1,
+      "top_1_id": "SYN-0001",
+      "top_1_sim": 4.0
+    },
+    "hybrid_alpha_050": {
+      "similarity": 4.0,
+      "novelty_pct": 0.0,
+      "target_rank": 1,
+      "top_1_id": "SYN-0001",
+      "top_1_sim": 4.0,
+      "top_5_retrieved": [
+        "SYN-0001",
+        "SYN-0183",
+        "SYN-0053",
+        "SYN-0493",
+        "SYN-0571"
+      ]
+    }
+  },
+  {
+    "case_id": "CASE_B_LIGHT_PARAPHRASE",
+    "case_name": "Light Paraphrase (Grammatical Edits & Local Synonyms)",
+    "target_ref_id": "SYN-0001",
+    "expected_relationship": "Near-Duplicate / Very High Overlap",
+    "prod_ridge_tfidf": {
+      "similarity": 2.3564,
+      "novelty_pct": 41.09,
+      "target_rank": 4,
+      "top_1_id": "SYN-0157",
+      "top_1_sim": 2.403
+    },
+    "cand_constrained_tfidf": {
+      "similarity": 2.9119,
+      "novelty_pct": 27.2,
+      "target_rank": 2,
+      "top_1_id": "SYN-0234",
+      "top_1_sim": 3.0213
+    },
+    "semantic_only": {
+      "similarity": 3.128,
+      "novelty_pct": 21.8,
+      "target_rank": 1,
+      "top_1_id": "SYN-0001",
+      "top_1_sim": 3.128
+    },
+    "hybrid_alpha_050": {
+      "similarity": 3.0199,
+      "novelty_pct": 24.5,
+      "target_rank": 1,
+      "top_1_id": "SYN-0001",
+      "top_1_sim": 3.0199,
+      "top_5_retrieved": [
+        "SYN-0001",
+        "SYN-0234",
+        "SYN-0415",
+        "SYN-0571",
+        "SYN-0183"
+      ]
+    }
+  },
+  {
+    "case_id": "CASE_C_STRONG_PARAPHRASE",
+    "case_name": "Strong Paraphrase (Synonym Substitution & Reordered Syntax)",
+    "target_ref_id": "SYN-0001",
+    "expected_relationship": "Strong Conceptual Overlap / Paraphrased Duplicate",
+    "prod_ridge_tfidf": {
+      "similarity": 0.0,
+      "novelty_pct": 100.0,
+      "target_rank": 169,
+      "top_1_id": "SYN-0400",
+      "top_1_sim": 1.2456
+    },
+    "cand_constrained_tfidf": {
+      "similarity": 0.0,
+      "novelty_pct": 100.0,
+      "target_rank": 247,
+      "top_1_id": "SYN-0063",
+      "top_1_sim": 1.4756
+    },
+    "semantic_only": {
+      "similarity": 1.6666,
+      "novelty_pct": 58.34,
+      "target_rank": 22,
+      "top_1_id": "SYN-0157",
+      "top_1_sim": 1.9972
+    },
+    "hybrid_alpha_050": {
+      "similarity": 0.8332,
+      "novelty_pct": 79.17,
+      "target_rank": 69,
+      "top_1_id": "SYN-0296",
+      "top_1_sim": 1.5488,
+      "top_5_retrieved": [
+        "SYN-0296",
+        "SYN-0529",
+        "SYN-0063",
+        "SYN-0400",
+        "SYN-0218"
+      ]
+    }
+  },
+  {
+    "case_id": "CASE_D_SAME_DOMAIN_DIFF_PROBLEM",
+    "case_name": "Same Domain (AI/ML), Completely Different Research Problem",
+    "target_ref_id": "SYN-0001",
+    "expected_relationship": "Unrelated / Minimal Overlap",
+    "prod_ridge_tfidf": {
+      "similarity": 0.0,
+      "novelty_pct": 100.0,
+      "target_rank": 191,
+      "top_1_id": "SYN-0372",
+      "top_1_sim": 0.2197
+    },
+    "cand_constrained_tfidf": {
+      "similarity": 0.1247,
+      "novelty_pct": 96.88,
+      "target_rank": 95,
+      "top_1_id": "SYN-0527",
+      "top_1_sim": 1.2637
+    },
+    "semantic_only": {
+      "similarity": 0.4151,
+      "novelty_pct": 89.62,
+      "target_rank": 529,
+      "top_1_id": "SYN-0242",
+      "top_1_sim": 1.4305
+    },
+    "hybrid_alpha_050": {
+      "similarity": 0.2699,
+      "novelty_pct": 93.25,
+      "target_rank": 486,
+      "top_1_id": "SYN-0527",
+      "top_1_sim": 1.3437,
+      "top_5_retrieved": [
+        "SYN-0527",
+        "SYN-0242",
+        "SYN-0475",
+        "SYN-0449",
+        "SYN-0139"
+      ]
+    }
+  },
+  {
+    "case_id": "CASE_E_DIFF_DOMAIN_COMMON_TECH",
+    "case_name": "Different Domain, Shared Technical Vocabulary",
+    "target_ref_id": "SYN-0001",
+    "expected_relationship": "Superficial Vocabulary Overlap Only",
+    "prod_ridge_tfidf": {
+      "similarity": 0.0,
+      "novelty_pct": 100.0,
+      "target_rank": 195,
+      "top_1_id": "SYN-0287",
+      "top_1_sim": 1.4064
+    },
+    "cand_constrained_tfidf": {
+      "similarity": 0.2749,
+      "novelty_pct": 93.13,
+      "target_rank": 94,
+      "top_1_id": "SYN-0468",
+      "top_1_sim": 1.53
+    },
+    "semantic_only": {
+      "similarity": 0.6347,
+      "novelty_pct": 84.13,
+      "target_rank": 282,
+      "top_1_id": "SYN-0204",
+      "top_1_sim": 1.6488
+    },
+    "hybrid_alpha_050": {
+      "similarity": 0.4548,
+      "novelty_pct": 88.63,
+      "target_rank": 172,
+      "top_1_id": "SYN-0235",
+      "top_1_sim": 1.343,
+      "top_5_retrieved": [
+        "SYN-0235",
+        "SYN-0468",
+        "SYN-0080",
+        "SYN-0132",
+        "SYN-0002"
+      ]
+    }
+  },
+  {
+    "case_id": "CASE_F_SAME_DATASET_DIFF_OBJECTIVES",
+    "case_name": "Same Dataset (PlantVillage), Different Research Objectives",
+    "target_ref_id": "SYN-0001",
+    "expected_relationship": "Dataset Overlap with Distinct Methodology & Task",
+    "prod_ridge_tfidf": {
+      "similarity": 2.1561,
+      "novelty_pct": 46.1,
+      "target_rank": 26,
+      "top_1_id": "SYN-0017",
+      "top_1_sim": 2.1601
+    },
+    "cand_constrained_tfidf": {
+      "similarity": 1.9529,
+      "novelty_pct": 51.18,
+      "target_rank": 25,
+      "top_1_id": "SYN-0415",
+      "top_1_sim": 2.4087
+    },
+    "semantic_only": {
+      "similarity": 2.4278,
+      "novelty_pct": 39.3,
+      "target_rank": 26,
+      "top_1_id": "SYN-0571",
+      "top_1_sim": 2.7828
+    },
+    "hybrid_alpha_050": {
+      "similarity": 2.1904,
+      "novelty_pct": 45.24,
+      "target_rank": 29,
+      "top_1_id": "SYN-0571",
+      "top_1_sim": 2.5828,
+      "top_5_retrieved": [
+        "SYN-0571",
+        "SYN-0415",
+        "SYN-0131",
+        "SYN-0095",
+        "SYN-0121"
+      ]
+    }
+  },
+  {
+    "case_id": "CASE_G_SAME_ALGO_DIFF_APPLICATION",
+    "case_name": "Same Algorithm (CNN), Completely Different Application Domain",
+    "target_ref_id": "SYN-0001",
+    "expected_relationship": "Algorithmic Tool Overlap with Different Application",
+    "prod_ridge_tfidf": {
+      "similarity": 0.0,
+      "novelty_pct": 100.0,
+      "target_rank": 366,
+      "top_1_id": "SYN-0306",
+      "top_1_sim": 0.463
+    },
+    "cand_constrained_tfidf": {
+      "similarity": 0.4117,
+      "novelty_pct": 89.71,
+      "target_rank": 293,
+      "top_1_id": "SYN-0270",
+      "top_1_sim": 1.13
+    },
+    "semantic_only": {
+      "similarity": 0.8828,
+      "novelty_pct": 77.93,
+      "target_rank": 235,
+      "top_1_id": "SYN-0270",
+      "top_1_sim": 1.7393
+    },
+    "hybrid_alpha_050": {
+      "similarity": 0.6472,
+      "novelty_pct": 83.82,
+      "target_rank": 265,
+      "top_1_id": "SYN-0270",
+      "top_1_sim": 1.4347,
+      "top_5_retrieved": [
+        "SYN-0270",
+        "SYN-0503",
+        "SYN-0374",
+        "SYN-0218",
+        "SYN-0379"
+      ]
+    }
+  },
+  {
+    "case_id": "CASE_H_SUPERFICIAL_WORDING_DIFF_OBJECTIVES",
+    "case_name": "Superficially Similar Wording, Substantially Different Research",
+    "target_ref_id": "SYN-0001",
+    "expected_relationship": "Superficial Jargon Overlap / Different Academic Field",
+    "prod_ridge_tfidf": {
+      "similarity": 0.0415,
+      "novelty_pct": 98.96,
+      "target_rank": 21,
+      "top_1_id": "SYN-0493",
+      "top_1_sim": 0.0609
+    },
+    "cand_constrained_tfidf": {
+      "similarity": 0.0,
+      "novelty_pct": 100.0,
+      "target_rank": 262,
+      "top_1_id": "SYN-0415",
+      "top_1_sim": 0.0879
+    },
+    "semantic_only": {
+      "similarity": 0.7199,
+      "novelty_pct": 82.0,
+      "target_rank": 79,
+      "top_1_id": "SYN-0591",
+      "top_1_sim": 1.1403
+    },
+    "hybrid_alpha_050": {
+      "similarity": 0.3599,
+      "novelty_pct": 91.0,
+      "target_rank": 82,
+      "top_1_id": "SYN-0565",
+      "top_1_sim": 0.598,
+      "top_5_retrieved": [
+        "SYN-0565",
+        "SYN-0414",
+        "SYN-0591",
+        "SYN-0440",
+        "SYN-0466"
+      ]
+    }
+  }
+]

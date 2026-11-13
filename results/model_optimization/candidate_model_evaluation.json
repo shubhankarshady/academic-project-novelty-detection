@@ -1,0 +1,52 @@
+{
+  "model_architecture": "Constrained Section Fusion (SLSQP)",
+  "constraints": {
+    "non_negative_weights": true,
+    "weights_sum": 4.0,
+    "intercept": 0.0,
+    "bounds": [
+      0.0,
+      4.0
+    ]
+  },
+  "learned_weights": {
+    "title_similarity": 0.9535142940438291,
+    "abstract_similarity": 0.0,
+    "problem_similarity": 2.484028504105753e-16,
+    "objectives_similarity": 1.565477955199367e-17,
+    "methodology_similarity": 0.37757134293394357,
+    "dataset_similarity": 1.9528858208875572,
+    "algorithm_similarity": 1.0065453580896271e-16,
+    "technology_similarity": 0.7160285421346699
+  },
+  "normalized_weights_pct": {
+    "title_similarity": 23.837857351095728,
+    "abstract_similarity": 0.0,
+    "problem_similarity": 6.210071260264383e-15,
+    "objectives_similarity": 3.9136948879984174e-16,
+    "methodology_similarity": 9.43928357334859,
+    "dataset_similarity": 48.82214552218893,
+    "algorithm_similarity": 2.516363395224068e-15,
+    "technology_similarity": 17.90071355336675
+  },
+  "train_metrics": {
+    "rmse": 0.7096591838285083,
+    "mae": 0.5083844861488531,
+    "r2": 0.7453656340379291,
+    "pearson_r": 0.8661902071909886,
+    "spearman_rho": 0.7867006720476212
+  },
+  "test_metrics": {
+    "rmse": 0.7848630702929752,
+    "mae": 0.5908148152960311,
+    "r2": 0.6577193794111782,
+    "pearson_r": 0.8233288732283761,
+    "spearman_rho": 0.7802576814732771
+  },
+  "sample_counts": {
+    "total_pairs": 2996,
+    "train_pairs": 1916,
+    "test_pairs": 120
+  },
+  "synthetic_benchmark_note": "Evaluated against synthetic benchmark labels; not real-world faculty validated."
+}

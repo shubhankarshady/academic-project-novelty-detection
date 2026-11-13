@@ -181,7 +181,10 @@ class NoveltyExplainer:
         self,
         tfidf_extractor,
         model,
-        projects_df: Optional[pd.DataFrame] = None
+        projects_df: Optional[pd.DataFrame] = None,
+        dense_extractor: Optional[Any] = None,
+        scoring_mode: str = "tfidf",
+        hybrid_alpha: float = 0.50
     ):
         self.tfidf_extractor = tfidf_extractor
         self.projects_df = (
@@ -193,6 +196,25 @@ class NoveltyExplainer:
         self.section_cols = getattr(tfidf_extractor, "section_cols", SECTION_COLUMNS)
         self.section_names = list(self.section_cols.keys())
         self.feature_names = [f"{sec}_similarity" for sec in self.section_names]
+
+        # Validate scoring mode
+        mode_clean = str(scoring_mode).strip().lower()
+        if mode_clean not in {"tfidf", "hybrid"}:
+            raise ValueError(f"Unsupported scoring_mode: '{scoring_mode}'. Must be 'tfidf' or 'hybrid'.")
+        self.scoring_mode = mode_clean
+
+        # Validate hybrid alpha
+        try:
+            alpha_val = float(hybrid_alpha)
+        except (ValueError, TypeError):
+            raise ValueError(f"hybrid_alpha must be a float between 0.0 and 1.0, got: {hybrid_alpha}")
+        if not (0.0 <= alpha_val <= 1.0):
+            raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {hybrid_alpha}")
+        self.hybrid_alpha = alpha_val
+
+        self.dense_extractor = dense_extractor
+        if self.scoring_mode == "hybrid" and self.dense_extractor is None:
+            raise ValueError("SectionDenseEmbeddingExtractor (dense_extractor) is required when scoring_mode is 'hybrid'.")
 
         # Extract model coefficients and intercept
         self._extract_model_parameters(model)
@@ -286,45 +308,85 @@ class NoveltyExplainer:
         self,
         candidate_dict: Dict[str, Any],
         historical_row: Union[pd.Series, Dict[str, Any]],
-        top_n_terms: int = 5
+        top_n_terms: int = 5,
+        scoring_mode: Optional[str] = None,
+        hybrid_alpha: Optional[float] = None,
+        cand_dense_embeddings: Optional[Dict[str, Optional[np.ndarray]]] = None
     ) -> Dict[str, Any]:
         """
         Generate a transparent section-by-section and model-contribution breakdown
         for a pair of proposals (candidate vs historical).
+        Computes both lexical (TF-IDF) and semantic (Dense) section similarities.
         """
         if isinstance(historical_row, pd.Series):
             historical_dict = historical_row.to_dict()
         else:
             historical_dict = dict(historical_row)
 
+        mode = (scoring_mode or self.scoring_mode).lower()
+        alpha = float(hybrid_alpha if hybrid_alpha is not None else self.hybrid_alpha)
+
         section_scores = {}
+        section_lexical = {}
+        section_semantic = {}
+        section_hybrid = {}
         section_contributions = {}
         section_evidence = {}
         unrounded_contribs = []
 
+        hist_id = str(historical_dict.get("project_id", ""))
+        hist_idx = self.dense_extractor.project_to_index.get(hist_id) if self.dense_extractor is not None else None
+
         # 1. Compute section similarities & signed model contributions
         for idx, sec_name in enumerate(self.section_names):
             col = self.section_cols[sec_name]
-            vec: TfidfVectorizer = self.tfidf_extractor.vectorizers.get(sec_name)
-
             cand_text = str(candidate_dict.get(col, "")).strip()
             hist_text = str(historical_dict.get(col, "")).strip()
 
+            # --- A. Lexical Similarity (TF-IDF) ---
+            vec: TfidfVectorizer = self.tfidf_extractor.vectorizers.get(sec_name)
             if cand_text and hist_text and vec is not None:
                 v_cand = vec.transform([cand_text])
                 v_hist = vec.transform([hist_text])
-                sim = float(cosine_similarity(v_cand, v_hist)[0, 0])
+                raw_tf = float(cosine_similarity(v_cand, v_hist)[0, 0])
+                sim_lexical = float(np.clip(raw_tf, 0.0, 1.0))
             else:
-                sim = 0.0
+                sim_lexical = 0.0
+
+            # --- B. Semantic Similarity (Dense) ---
+            if self.dense_extractor is not None and hist_idx is not None and cand_text and hist_text:
+                if cand_dense_embeddings and cand_dense_embeddings.get(sec_name) is not None:
+                    cand_emb = cand_dense_embeddings[sec_name]
+                else:
+                    self.dense_extractor._lazy_load_model()
+                    cand_emb = self.dense_extractor.model.encode(
+                        [cand_text], convert_to_numpy=True, normalize_embeddings=True
+                    )[0]
+
+                hist_emb = self.dense_extractor.embeddings[sec_name][hist_idx]
+                raw_cosine = float(np.dot(hist_emb, cand_emb))
+                # Production scoring layer clamps negative semantic cosines to [0.0, 1.0]
+                sim_semantic = float(np.clip(raw_cosine, 0.0, 1.0))
+            else:
+                sim_semantic = 0.0
+
+            # --- C. Convex Hybrid Combination ---
+            sim_hybrid_val = float(alpha * sim_lexical + (1.0 - alpha) * sim_semantic)
+            sim_hybrid_val = float(np.clip(sim_hybrid_val, 0.0, 1.0))
+
+            effective_sim = sim_hybrid_val if mode == "hybrid" else sim_lexical
 
             weight = float(self.coef_[idx])
-            signed_contrib = sim * weight
+            signed_contrib = effective_sim * weight
             unrounded_contribs.append(signed_contrib)
 
-            section_scores[sec_name] = round(sim, 4)
+            section_scores[sec_name] = round(effective_sim, 4)
+            section_lexical[sec_name] = round(sim_lexical, 4)
+            section_semantic[sec_name] = round(sim_semantic, 4)
+            section_hybrid[sec_name] = round(sim_hybrid_val, 4)
             section_contributions[sec_name] = round(signed_contrib, 4)
 
-            # Keyword and snippet evidence
+            # Keyword and snippet evidence (lexical)
             shared_terms = self.extract_shared_terms(sec_name, cand_text, hist_text, top_n=top_n_terms)
             evidence_msg = (
                 "Shared lexical evidence identified."
@@ -332,7 +394,7 @@ class NoveltyExplainer:
                 else "No informative shared terms identified for this section."
             )
             section_evidence[sec_name] = {
-                "similarity_score": round(sim, 4),
+                "similarity_score": round(effective_sim, 4),
                 "model_weight": round(weight, 4),
                 "signed_contribution": round(signed_contrib, 4),
                 "shared_terms_count": len(shared_terms),
@@ -347,13 +409,16 @@ class NoveltyExplainer:
         novelty_score_pct = calculate_novelty_score(clipped_prediction)
         novelty_tier = get_novelty_level(novelty_score_pct)
 
-        # 3. Ranked Sections (by raw similarity descending)
+        # 3. Ranked Sections (by effective similarity descending)
         ranked_sections = sorted(
             [
                 {
                     "section": sec,
                     "column": self.section_cols[sec],
                     "raw_similarity": section_scores[sec],
+                    "lexical_similarity": section_lexical[sec],
+                    "semantic_similarity": section_semantic[sec],
+                    "hybrid_similarity": section_hybrid[sec],
                     "model_weight": round(float(self.coef_[i]), 4),
                     "signed_contribution": section_contributions[sec]
                 }
@@ -367,6 +432,8 @@ class NoveltyExplainer:
             "historical_project_id": str(historical_dict.get("project_id", "UNKNOWN")),
             "historical_project_title": str(historical_dict.get("project_title", "N/A")),
             "historical_domain": str(historical_dict.get("domain", "N/A")),
+            "scoring_mode": mode,
+            "hybrid_alpha": round(alpha, 4) if mode == "hybrid" else 1.0,
             "predicted_similarity": round(clipped_prediction, 4),
             "raw_similarity_prediction": round(raw_prediction, 4),
             "clipped_prediction": round(clipped_prediction, 4),
@@ -376,21 +443,25 @@ class NoveltyExplainer:
             "sum_of_contributions": round(sum_of_contributions, 4),
             "reconstructed_raw_prediction": round(raw_prediction, 4),
             "section_similarity_scores": section_scores,
+            "section_lexical_scores": section_lexical,
+            "section_semantic_scores": section_semantic,
+            "section_hybrid_scores": section_hybrid,
             "section_signed_contributions": section_contributions,
             "ranked_sections": ranked_sections,
             "section_evidence": section_evidence,
             "disclaimers": {
                 "corpus_relativity": (
                     "Novelty score is an estimated heuristic relative to the current database. "
-                    "It does not establish originality or prove plagiarism."
+                    "It does not establish absolute originality or prove plagiarism."
                 ),
-                "lexical_limitation": (
-                    "TF-IDF measures exact lexical and n-gram overlap. High section similarity indicates shared terminology, "
-                    "but low lexical overlap may miss paraphrased or conceptually similar ideas."
+                "lexical_vs_semantic": (
+                    "Lexical similarity (TF-IDF) captures exact n-gram and vocabulary overlap, while "
+                    "semantic similarity (Dense embeddings) captures conceptual and topical resemblance. "
+                    "High conceptual resemblance indicates shared academic themes, not copying or plagiarism."
                 ),
                 "model_attribution": (
-                    "Model contributions represent linear additive feature associations weighted by the fitted Ridge model, "
-                    "not causal explanations of novelty, duplication, or copying."
+                    "Model feature contributions represent linear additive associations (sum(w_i * s_i) + b), "
+                    "not causal explanations of copying, duplication, or lack of merit."
                 ),
                 "evidence_integrity": (
                     "Shared keywords indicate lexical topic overlap, not academic plagiarism or definitive lack of novelty."
@@ -402,14 +473,68 @@ class NoveltyExplainer:
         self,
         candidate_dict: Dict[str, Any],
         top_k: int = 3,
-        exclude_self: bool = True
+        exclude_self: bool = True,
+        scoring_mode: Optional[str] = None,
+        hybrid_alpha: Optional[float] = None
     ) -> Dict[str, Any]:
         """
         Rank historical projects against candidate proposal, exclude self-matching,
         and generate explainable reports for the top K similar prior projects.
+        Supports both TF-IDF production mode and configurable hybrid scoring mode.
         """
-        # 1. Compute candidate similarities across all corpus projects
+        mode = (scoring_mode or self.scoring_mode).lower()
+        if mode not in {"tfidf", "hybrid"}:
+            raise ValueError(f"Unsupported scoring_mode: '{mode}'. Must be 'tfidf' or 'hybrid'.")
+
+        alpha = float(hybrid_alpha if hybrid_alpha is not None else self.hybrid_alpha)
+        if not (0.0 <= alpha <= 1.0):
+            raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {alpha}")
+
+        if mode == "hybrid" and self.dense_extractor is None:
+            raise RuntimeError(
+                "Hybrid scoring mode requested, but no SectionDenseEmbeddingExtractor is loaded. "
+                "Ensure dense model artifact is initialized."
+            )
+
+        # 1. Compute lexical candidate similarities across all corpus projects
         sim_df = self.tfidf_extractor.compute_candidate_similarity(candidate_dict)
+
+        # 2. If hybrid mode, compute semantic similarities and convex combination
+        cand_dense_embeddings: Optional[Dict[str, Optional[np.ndarray]]] = None
+        if mode == "hybrid":
+            self.dense_extractor._lazy_load_model()
+            cand_dense_embeddings = {}
+            for sec_name, col in self.section_cols.items():
+                cand_text = str(candidate_dict.get(col, "")).strip()
+                if cand_text:
+                    cand_dense_embeddings[sec_name] = self.dense_extractor.model.encode(
+                        [cand_text], convert_to_numpy=True, normalize_embeddings=True
+                    )[0]
+                else:
+                    cand_dense_embeddings[sec_name] = None
+
+            dense_sims = {}
+            for sec_name in self.section_names:
+                cand_vec = cand_dense_embeddings[sec_name]
+                if cand_vec is not None:
+                    raw_dots = np.dot(self.dense_extractor.embeddings[sec_name], cand_vec)
+                    # Production scoring layer clamps negative semantic cosines to [0.0, 1.0]
+                    clamped_dots = np.clip(raw_dots, 0.0, 1.0)
+                else:
+                    clamped_dots = np.zeros(len(self.dense_extractor.project_ids), dtype=float)
+                dense_sims[f"{sec_name}_dense_similarity"] = clamped_dots
+
+            dense_df = pd.DataFrame(dense_sims)
+            dense_df["project_id"] = self.dense_extractor.project_ids
+            sim_df = pd.merge(sim_df, dense_df, on="project_id", how="left")
+
+            # Apply convex combination: alpha * tfidf + (1 - alpha) * dense
+            for sec_name in self.section_names:
+                tf_col = f"{sec_name}_similarity"
+                dn_col = f"{sec_name}_dense_similarity"
+                sim_df[f"{sec_name}_lexical_similarity"] = sim_df[tf_col]
+                sim_df[f"{sec_name}_semantic_similarity"] = sim_df[dn_col]
+                sim_df[tf_col] = alpha * sim_df[tf_col] + (1.0 - alpha) * sim_df[dn_col]
 
         # Merge additional metadata from projects_df if needed
         merged_df = pd.merge(
@@ -419,7 +544,7 @@ class NoveltyExplainer:
             how="left"
         )
 
-        # 2. Compute model predictions across all projects
+        # 3. Compute model predictions across all projects
         X = merged_df[self.feature_names].to_numpy(dtype=float)
         raw_preds = self.intercept_ + (X @ self.coef_)
         clipped_preds = np.clip(raw_preds, 0.0, 4.0)
@@ -427,35 +552,21 @@ class NoveltyExplainer:
         merged_df["predicted_similarity"] = clipped_preds
         merged_df["raw_prediction"] = raw_preds
 
-        # 3. Exclude self-matching
+        # 4. Exclude self-matching strictly by reliable, explicit project identity
         eligible_df = merged_df.copy()
         candidate_id = candidate_dict.get("project_id")
 
-        if exclude_self:
-            exclude_mask = pd.Series(False, index=eligible_df.index)
-
-            # Exclude by project ID match (case-insensitive string comparison)
-            if candidate_id:
-                cand_id_str = str(candidate_id).strip().lower()
-                exclude_mask = exclude_mask | (eligible_df["project_id"].astype(str).str.strip().str.lower() == cand_id_str)
-
-            # Exclude by exact title match if candidate title is non-empty
-            cand_title = str(candidate_dict.get("project_title", "")).strip().lower()
-            if cand_title and "project_title" in self.projects_df.columns:
-                hist_titles = self.projects_df.set_index("project_id").loc[eligible_df["project_id"], "project_title"].fillna("").astype(str).str.strip().str.lower()
-                exclude_mask = exclude_mask | (hist_titles.values == cand_title)
-
-            # Exclude if all section similarity features are 1.0 (or nearly 1.0 within 1e-4)
-            sim_cols = [f"{sec}_similarity" for sec in self.section_names]
-            all_ones = (eligible_df[sim_cols] >= 0.9999).all(axis=1)
-            exclude_mask = exclude_mask | all_ones
-
-            eligible_df = eligible_df[~exclude_mask]
+        if exclude_self and candidate_id:
+            cand_id_str = str(candidate_id).strip().lower()
+            # Exclude only if candidate_id is an explicit reference ID and not an unassigned placeholder
+            if cand_id_str and cand_id_str != "new_proposal":
+                exclude_mask = eligible_df["project_id"].astype(str).str.strip().str.lower() == cand_id_str
+                eligible_df = eligible_df[~exclude_mask]
 
         if len(eligible_df) == 0:
             raise ValueError("No eligible historical projects available for comparison after self-exclusion.")
 
-        # 4. Deterministic ranking: primary by predicted_similarity (descending),
+        # 5. Deterministic ranking: primary by predicted_similarity (descending),
         # secondary by raw_prediction (descending), tertiary by project_id (ascending)
         ranked_df = eligible_df.sort_values(
             by=["predicted_similarity", "raw_prediction", "project_id"],
@@ -464,21 +575,37 @@ class NoveltyExplainer:
         top_k_actual = min(top_k, len(ranked_df))
         top_matches_df = ranked_df.iloc[:top_k_actual]
 
-        # 5. Overall Novelty Assessment
+        # 6. Overall Novelty Assessment
         max_sim = float(ranked_df.iloc[0]["predicted_similarity"])
         overall_novelty_pct = calculate_novelty_score(max_sim)
         novelty_tier = get_novelty_level(overall_novelty_pct)
 
-        # 6. Generate detailed explanations for each top match
+        # 7. Generate detailed explanations for each top match
         match_explanations = []
         for _, row in top_matches_df.iterrows():
             hist_proj_row = self.projects_df[self.projects_df["project_id"] == row["project_id"]].iloc[0]
-            exp = self.explain_pair(candidate_dict, hist_proj_row)
+            exp = self.explain_pair(
+                candidate_dict=candidate_dict,
+                historical_row=hist_proj_row,
+                scoring_mode=mode,
+                hybrid_alpha=alpha,
+                cand_dense_embeddings=cand_dense_embeddings
+            )
             match_explanations.append(exp)
+
+        formula_str = (
+            f"hybrid_similarity = {alpha:.2f} * tfidf_similarity + {1.0 - alpha:.2f} * semantic_similarity; "
+            "predicted_similarity = sum(w_i * hybrid_similarity_i) + intercept"
+            if mode == "hybrid"
+            else "predicted_similarity = sum(w_i * tfidf_similarity_i) + intercept"
+        )
 
         return {
             "candidate_proposal_title": candidate_dict.get("project_title", "N/A"),
             "candidate_project_id": candidate_dict.get("project_id", "NEW_PROPOSAL"),
+            "scoring_mode": mode,
+            "hybrid_alpha": round(alpha, 4) if mode == "hybrid" else 1.0,
+            "scoring_formula": formula_str,
             "corpus_size_evaluated": len(eligible_df),
             "max_similarity_score": round(max_sim, 4),
             "overall_novelty_score_pct": round(overall_novelty_pct, 2),
@@ -495,12 +622,18 @@ class NoveltyExplainer:
                     "Novelty assessment tiers are heuristic benchmark rules relative to the indexed database "
                     "and require faculty panel review and domain-specific validation."
                 ),
+                "lexical_vs_semantic": (
+                    "Lexical similarity evaluates exact wording and n-gram overlap, whereas semantic similarity "
+                    "captures high-level conceptual alignment. High semantic similarity indicates topical "
+                    "resemblance in embedding space, not proof of copying or plagiarism."
+                ),
                 "synthetic_ground_truth": (
                     "All benchmark similarity ratings in this system originate from synthetic heuristic labels, "
                     "not verified faculty adjudications."
                 ),
                 "non_causal_attribution": (
-                    "Linear model feature attributions represent statistical associations rather than causal evidence."
+                    "Linear model feature attributions represent statistical associations rather than causal evidence, "
+                    "and are not SHAP or LIME surrogate model explanations."
                 )
             }
         }

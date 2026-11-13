@@ -46,6 +46,8 @@ class HealthResponse(BaseModel):
     reference_corpus_size: int = Field(..., description="Number of baseline historical projects in reference corpus")
     submitted_proposals_count: int = Field(..., description="Number of proposals stored in the submitted database")
     model_loaded: bool = Field(True, description="Whether ML and XAI models are loaded in memory")
+    active_scoring_mode: Optional[str] = Field("tfidf", description="Active scoring mode ('tfidf' or 'hybrid')")
+    hybrid_alpha: Optional[float] = Field(0.50, description="Configured hybrid alpha")
     message: str = Field(..., description="Status summary distinguishing reference corpus from user submissions")
 
 
@@ -69,6 +71,9 @@ class RankedSectionItem(BaseModel):
     section: str
     column: str
     raw_similarity: float
+    lexical_similarity: Optional[float] = Field(None, description="Lexical TF-IDF cosine similarity")
+    semantic_similarity: Optional[float] = Field(None, description="Semantic Dense cosine similarity")
+    hybrid_similarity: Optional[float] = Field(None, description="Convex hybrid similarity")
     model_weight: float
     signed_contribution: float
 
@@ -82,6 +87,8 @@ class TopMatchItem(BaseModel):
     historical_project_id: str
     historical_project_title: str
     historical_domain: str
+    scoring_mode: Optional[str] = Field("tfidf", description="Scoring mode for this match ('tfidf' or 'hybrid')")
+    hybrid_alpha: Optional[float] = Field(1.0, description="Hybrid weighting factor alpha")
     predicted_similarity: float
     raw_similarity_prediction: float
     clipped_prediction: float
@@ -91,6 +98,9 @@ class TopMatchItem(BaseModel):
     sum_of_contributions: float
     reconstructed_raw_prediction: float
     section_similarity_scores: Dict[str, float]
+    section_lexical_scores: Optional[Dict[str, float]] = Field(None, description="Lexical similarities per section")
+    section_semantic_scores: Optional[Dict[str, float]] = Field(None, description="Semantic similarities per section")
+    section_hybrid_scores: Optional[Dict[str, float]] = Field(None, description="Hybrid similarities per section")
     section_signed_contributions: Dict[str, float]
     ranked_sections: List[RankedSectionItem]
     section_evidence: Dict[str, SectionEvidenceItem]
@@ -102,6 +112,9 @@ class ProposalEvaluationResponse(BaseModel):
     """Complete Explainable AI evaluation payload returned by /api/score."""
     candidate_proposal_title: str
     candidate_project_id: Optional[str] = Field("NEW_PROPOSAL", description="Candidate proposal identifier")
+    scoring_mode: Optional[str] = Field("tfidf", description="Scoring mode evaluated ('tfidf' or 'hybrid')")
+    hybrid_alpha: Optional[float] = Field(1.0, description="Hybrid weighting factor alpha")
+    scoring_formula: Optional[str] = Field(None, description="Mathematical scoring formula applied")
     corpus_size_evaluated: int
     max_similarity_score: float
     overall_novelty_score_pct: float

@@ -445,21 +445,21 @@ class TestXAIExplainer(unittest.TestCase):
         self.assertEqual(exp["predicted_similarity"], exp["clipped_prediction"])
 
     def test_self_exclusion_comprehensive(self):
-        """Verify self-exclusion by ID, by exact title, and by identical text."""
-        # 1. By ID
+        """Verify self-exclusion: explicit ID excludes, but title match alone does not exclude."""
+        # 1. By explicit ID: when candidate_id matches historical project ID, it must be excluded
         cand_by_id = {"project_id": "SYN-TEST-001", "project_title": "Different Title"}
         rep_1 = self.explainer.explain_proposal(cand_by_id, top_k=2, exclude_self=True)
         matched_ids_1 = [m["historical_project_id"] for m in rep_1["top_matches"]]
         self.assertNotIn("SYN-TEST-001", matched_ids_1)
 
-        # 2. By title
+        # 2. By title only: matching title without matching ID must NOT exclude the reference project
         cand_by_title = {
             "project_title": "Deep Learning for Medical Image Segmentation",
             "abstract": "Different abstract text here."
         }
         rep_2 = self.explainer.explain_proposal(cand_by_title, top_k=2, exclude_self=True)
         matched_ids_2 = [m["historical_project_id"] for m in rep_2["top_matches"]]
-        self.assertNotIn("SYN-TEST-001", matched_ids_2)
+        self.assertIn("SYN-TEST-001", matched_ids_2)
 
     def test_novelty_wording_and_disclaimers(self):
         """Verify that score >= 75% uses 'High estimated novelty relative to the current database' and disclaimers are accurate."""

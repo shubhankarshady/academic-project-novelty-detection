@@ -1,0 +1,1309 @@
+{
+  "study_objective": "Evaluate dense semantic embeddings vs TF-IDF for paraphrase and distractors",
+  "reference_corpus_size": 600,
+  "embedding_model": "all-MiniLM-L6-v2",
+  "controlled_case_evaluations": [
+    {
+      "case_id": "CASE_A_EXACT_COPY",
+      "case_name": "Exact Copy of Reference Proposal",
+      "target_ref_id": "SYN-0001",
+      "expected_relationship": "Duplicate",
+      "section_similarities_against_target": {
+        "title": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": 0.0
+        },
+        "abstract": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": -0.0
+        },
+        "problem": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": -0.0
+        },
+        "objectives": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": 0.0
+        },
+        "methodology": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": -0.0
+        },
+        "dataset": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": -0.0
+        },
+        "algorithm": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": 0.0
+        },
+        "technology": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": 0.0
+        }
+      },
+      "method_evaluations": {
+        "prod_ridge_tfidf": {
+          "target_sim": 2.577,
+          "target_novelty_pct": 35.58,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 6,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0157",
+          "top_1_similarity": 2.6553,
+          "top_5_retrieved": [
+            "SYN-0157",
+            "SYN-0234",
+            "SYN-0390",
+            "SYN-0467",
+            "SYN-0183"
+          ]
+        },
+        "cand_constrained_tfidf": {
+          "target_sim": 4.0,
+          "target_novelty_pct": 0.0,
+          "target_tier": "Very Low Novelty / Potential Duplicate",
+          "target_rank": 1,
+          "in_top_1": true,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0001",
+          "top_1_similarity": 4.0,
+          "top_5_retrieved": [
+            "SYN-0001",
+            "SYN-0183",
+            "SYN-0053",
+            "SYN-0493",
+            "SYN-0571"
+          ]
+        },
+        "semantic_only": {
+          "target_sim": 4.0,
+          "target_novelty_pct": 0.0,
+          "target_tier": "Very Low Novelty / Potential Duplicate",
+          "target_rank": 1,
+          "in_top_1": true,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0001",
+          "top_1_similarity": 4.0,
+          "top_5_retrieved": [
+            "SYN-0001",
+            "SYN-0183",
+            "SYN-0053",
+            "SYN-0493",
+            "SYN-0571"
+          ]
+        },
+        "hybrid_alpha_025": {
+          "target_sim": 4.0,
+          "target_novelty_pct": 0.0,
+          "target_tier": "Very Low Novelty / Potential Duplicate",
+          "target_rank": 1,
+          "in_top_1": true,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0001",
+          "top_1_similarity": 4.0,
+          "top_5_retrieved": [
+            "SYN-0001",
+            "SYN-0183",
+            "SYN-0053",
+            "SYN-0493",
+            "SYN-0571"
+          ]
+        },
+        "hybrid_alpha_050": {
+          "target_sim": 4.0,
+          "target_novelty_pct": 0.0,
+          "target_tier": "Very Low Novelty / Potential Duplicate",
+          "target_rank": 1,
+          "in_top_1": true,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0001",
+          "top_1_similarity": 4.0,
+          "top_5_retrieved": [
+            "SYN-0001",
+            "SYN-0183",
+            "SYN-0053",
+            "SYN-0493",
+            "SYN-0571"
+          ]
+        },
+        "hybrid_alpha_075": {
+          "target_sim": 4.0,
+          "target_novelty_pct": 0.0,
+          "target_tier": "Very Low Novelty / Potential Duplicate",
+          "target_rank": 1,
+          "in_top_1": true,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0001",
+          "top_1_similarity": 4.0,
+          "top_5_retrieved": [
+            "SYN-0001",
+            "SYN-0183",
+            "SYN-0053",
+            "SYN-0493",
+            "SYN-0571"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CASE_B_LIGHT_PARAPHRASE",
+      "case_name": "Light Paraphrase (Grammatical Edits & Local Synonyms)",
+      "target_ref_id": "SYN-0001",
+      "expected_relationship": "Near-Duplicate / Very High Overlap",
+      "section_similarities_against_target": {
+        "title": {
+          "tfidf": 0.6975,
+          "dense": 0.8578,
+          "diff_dense_minus_tfidf": 0.1603
+        },
+        "abstract": {
+          "tfidf": 0.7859,
+          "dense": 0.8837,
+          "diff_dense_minus_tfidf": 0.0978
+        },
+        "problem": {
+          "tfidf": 0.6048,
+          "dense": 0.7975,
+          "diff_dense_minus_tfidf": 0.1927
+        },
+        "objectives": {
+          "tfidf": 0.9106,
+          "dense": 0.8928,
+          "diff_dense_minus_tfidf": -0.0178
+        },
+        "methodology": {
+          "tfidf": 0.4426,
+          "dense": 0.6768,
+          "diff_dense_minus_tfidf": 0.2341
+        },
+        "dataset": {
+          "tfidf": 0.9087,
+          "dense": 0.7308,
+          "diff_dense_minus_tfidf": -0.1779
+        },
+        "algorithm": {
+          "tfidf": 1.0,
+          "dense": 0.6117,
+          "diff_dense_minus_tfidf": -0.3883
+        },
+        "technology": {
+          "tfidf": 0.4263,
+          "dense": 0.8762,
+          "diff_dense_minus_tfidf": 0.45
+        }
+      },
+      "method_evaluations": {
+        "prod_ridge_tfidf": {
+          "target_sim": 2.3563,
+          "target_novelty_pct": 41.09,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 4,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0157",
+          "top_1_similarity": 2.4029,
+          "top_5_retrieved": [
+            "SYN-0157",
+            "SYN-0467",
+            "SYN-0390",
+            "SYN-0001",
+            "SYN-0183"
+          ]
+        },
+        "cand_constrained_tfidf": {
+          "target_sim": 2.9119,
+          "target_novelty_pct": 27.2,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 2,
+          "in_top_1": false,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0234",
+          "top_1_similarity": 3.0212,
+          "top_5_retrieved": [
+            "SYN-0234",
+            "SYN-0001",
+            "SYN-0415",
+            "SYN-0571",
+            "SYN-0183"
+          ]
+        },
+        "semantic_only": {
+          "target_sim": 3.128,
+          "target_novelty_pct": 21.8,
+          "target_tier": "Very Low Novelty / Potential Duplicate",
+          "target_rank": 1,
+          "in_top_1": true,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0001",
+          "top_1_similarity": 3.128,
+          "top_5_retrieved": [
+            "SYN-0001",
+            "SYN-0234",
+            "SYN-0571",
+            "SYN-0415",
+            "SYN-0157"
+          ]
+        },
+        "hybrid_alpha_025": {
+          "target_sim": 3.074,
+          "target_novelty_pct": 23.15,
+          "target_tier": "Very Low Novelty / Potential Duplicate",
+          "target_rank": 1,
+          "in_top_1": true,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0001",
+          "top_1_similarity": 3.074,
+          "top_5_retrieved": [
+            "SYN-0001",
+            "SYN-0234",
+            "SYN-0571",
+            "SYN-0415",
+            "SYN-0183"
+          ]
+        },
+        "hybrid_alpha_050": {
+          "target_sim": 3.02,
+          "target_novelty_pct": 24.5,
+          "target_tier": "Very Low Novelty / Potential Duplicate",
+          "target_rank": 1,
+          "in_top_1": true,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0001",
+          "top_1_similarity": 3.02,
+          "top_5_retrieved": [
+            "SYN-0001",
+            "SYN-0234",
+            "SYN-0415",
+            "SYN-0571",
+            "SYN-0183"
+          ]
+        },
+        "hybrid_alpha_075": {
+          "target_sim": 2.9659,
+          "target_novelty_pct": 25.85,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 2,
+          "in_top_1": false,
+          "in_top_3": true,
+          "in_top_5": true,
+          "top_1_project_id": "SYN-0234",
+          "top_1_similarity": 2.9719,
+          "top_5_retrieved": [
+            "SYN-0234",
+            "SYN-0001",
+            "SYN-0415",
+            "SYN-0571",
+            "SYN-0183"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CASE_C_STRONG_PARAPHRASE",
+      "case_name": "Strong Paraphrase (Synonym Substitution & Reordered Syntax)",
+      "target_ref_id": "SYN-0001",
+      "expected_relationship": "Strong Conceptual Overlap / Paraphrased Duplicate",
+      "section_similarities_against_target": {
+        "title": {
+          "tfidf": 0.0,
+          "dense": 0.6313,
+          "diff_dense_minus_tfidf": 0.6313
+        },
+        "abstract": {
+          "tfidf": 0.0,
+          "dense": 0.6187,
+          "diff_dense_minus_tfidf": 0.6187
+        },
+        "problem": {
+          "tfidf": 0.0,
+          "dense": 0.5194,
+          "diff_dense_minus_tfidf": 0.5194
+        },
+        "objectives": {
+          "tfidf": 0.0902,
+          "dense": 0.5427,
+          "diff_dense_minus_tfidf": 0.4525
+        },
+        "methodology": {
+          "tfidf": 0.0,
+          "dense": 0.2724,
+          "diff_dense_minus_tfidf": 0.2724
+        },
+        "dataset": {
+          "tfidf": 0.0,
+          "dense": 0.3913,
+          "diff_dense_minus_tfidf": 0.3913
+        },
+        "algorithm": {
+          "tfidf": 0.0,
+          "dense": 0.4393,
+          "diff_dense_minus_tfidf": 0.4393
+        },
+        "technology": {
+          "tfidf": 0.0,
+          "dense": 0.2758,
+          "diff_dense_minus_tfidf": 0.2758
+        }
+      },
+      "method_evaluations": {
+        "prod_ridge_tfidf": {
+          "target_sim": 0.0,
+          "target_novelty_pct": 100.0,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 600,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0400",
+          "top_1_similarity": 1.2456,
+          "top_5_retrieved": [
+            "SYN-0400",
+            "SYN-0451",
+            "SYN-0374",
+            "SYN-0218",
+            "SYN-0141"
+          ]
+        },
+        "cand_constrained_tfidf": {
+          "target_sim": 0.0,
+          "target_novelty_pct": 100.0,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 258,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0063",
+          "top_1_similarity": 1.4756,
+          "top_5_retrieved": [
+            "SYN-0063",
+            "SYN-0296",
+            "SYN-0529",
+            "SYN-0400",
+            "SYN-0430"
+          ]
+        },
+        "semantic_only": {
+          "target_sim": 1.6664,
+          "target_novelty_pct": 58.34,
+          "target_tier": "Moderate Novelty (Partial Overlap)",
+          "target_rank": 22,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0157",
+          "top_1_similarity": 1.9972,
+          "top_5_retrieved": [
+            "SYN-0157",
+            "SYN-0390",
+            "SYN-0105",
+            "SYN-0364",
+            "SYN-0131"
+          ]
+        },
+        "hybrid_alpha_025": {
+          "target_sim": 1.2498,
+          "target_novelty_pct": 68.75,
+          "target_tier": "Moderate Novelty (Partial Overlap)",
+          "target_rank": 50,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0157",
+          "top_1_similarity": 1.6474,
+          "top_5_retrieved": [
+            "SYN-0157",
+            "SYN-0390",
+            "SYN-0296",
+            "SYN-0529",
+            "SYN-0063"
+          ]
+        },
+        "hybrid_alpha_050": {
+          "target_sim": 0.8332,
+          "target_novelty_pct": 79.17,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 69,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0296",
+          "top_1_similarity": 1.5489,
+          "top_5_retrieved": [
+            "SYN-0296",
+            "SYN-0529",
+            "SYN-0063",
+            "SYN-0400",
+            "SYN-0218"
+          ]
+        },
+        "hybrid_alpha_075": {
+          "target_sim": 0.4166,
+          "target_novelty_pct": 89.58,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 167,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0296",
+          "top_1_similarity": 1.5123,
+          "top_5_retrieved": [
+            "SYN-0296",
+            "SYN-0529",
+            "SYN-0063",
+            "SYN-0400",
+            "SYN-0353"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CASE_D_SAME_DOMAIN_DIFF_PROBLEM",
+      "case_name": "Same Domain (AI/ML), Completely Different Research Problem",
+      "target_ref_id": "SYN-0001",
+      "expected_relationship": "Unrelated / Minimal Overlap",
+      "section_similarities_against_target": {
+        "title": {
+          "tfidf": 0.083,
+          "dense": 0.1482,
+          "diff_dense_minus_tfidf": 0.0652
+        },
+        "abstract": {
+          "tfidf": 0.0339,
+          "dense": 0.1608,
+          "diff_dense_minus_tfidf": 0.127
+        },
+        "problem": {
+          "tfidf": 0.0,
+          "dense": 0.1166,
+          "diff_dense_minus_tfidf": 0.1166
+        },
+        "objectives": {
+          "tfidf": 0.0122,
+          "dense": 0.2834,
+          "diff_dense_minus_tfidf": 0.2712
+        },
+        "methodology": {
+          "tfidf": 0.0,
+          "dense": 0.1505,
+          "diff_dense_minus_tfidf": 0.1505
+        },
+        "dataset": {
+          "tfidf": 0.0,
+          "dense": -0.0199,
+          "diff_dense_minus_tfidf": -0.0199
+        },
+        "algorithm": {
+          "tfidf": 0.0,
+          "dense": 0.3485,
+          "diff_dense_minus_tfidf": 0.3485
+        },
+        "technology": {
+          "tfidf": 0.0636,
+          "dense": 0.303,
+          "diff_dense_minus_tfidf": 0.2394
+        }
+      },
+      "method_evaluations": {
+        "prod_ridge_tfidf": {
+          "target_sim": 0.0,
+          "target_novelty_pct": 100.0,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 600,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0372",
+          "top_1_similarity": 0.2197,
+          "top_5_retrieved": [
+            "SYN-0372",
+            "SYN-0139",
+            "SYN-0449",
+            "SYN-0191",
+            "SYN-0216"
+          ]
+        },
+        "cand_constrained_tfidf": {
+          "target_sim": 0.1247,
+          "target_novelty_pct": 96.88,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 95,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0527",
+          "top_1_similarity": 1.2637,
+          "top_5_retrieved": [
+            "SYN-0527",
+            "SYN-0475",
+            "SYN-0242",
+            "SYN-0191",
+            "SYN-0139"
+          ]
+        },
+        "semantic_only": {
+          "target_sim": 0.3762,
+          "target_novelty_pct": 90.59,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 543,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0242",
+          "top_1_similarity": 1.4306,
+          "top_5_retrieved": [
+            "SYN-0242",
+            "SYN-0527",
+            "SYN-0475",
+            "SYN-0449",
+            "SYN-0330"
+          ]
+        },
+        "hybrid_alpha_025": {
+          "target_sim": 0.3133,
+          "target_novelty_pct": 92.17,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 532,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0527",
+          "top_1_similarity": 1.3813,
+          "top_5_retrieved": [
+            "SYN-0527",
+            "SYN-0242",
+            "SYN-0475",
+            "SYN-0449",
+            "SYN-0139"
+          ]
+        },
+        "hybrid_alpha_050": {
+          "target_sim": 0.2505,
+          "target_novelty_pct": 93.74,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 502,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0527",
+          "top_1_similarity": 1.3421,
+          "top_5_retrieved": [
+            "SYN-0527",
+            "SYN-0242",
+            "SYN-0475",
+            "SYN-0449",
+            "SYN-0139"
+          ]
+        },
+        "hybrid_alpha_075": {
+          "target_sim": 0.1876,
+          "target_novelty_pct": 95.31,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 409,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0527",
+          "top_1_similarity": 1.3029,
+          "top_5_retrieved": [
+            "SYN-0527",
+            "SYN-0475",
+            "SYN-0242",
+            "SYN-0139",
+            "SYN-0191"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CASE_E_DIFF_DOMAIN_COMMON_TECH",
+      "case_name": "Different Domain, Shared Technical Vocabulary",
+      "target_ref_id": "SYN-0001",
+      "expected_relationship": "Superficial Vocabulary Overlap Only",
+      "section_similarities_against_target": {
+        "title": {
+          "tfidf": 0.2565,
+          "dense": 0.3031,
+          "diff_dense_minus_tfidf": 0.0466
+        },
+        "abstract": {
+          "tfidf": 0.1116,
+          "dense": 0.2057,
+          "diff_dense_minus_tfidf": 0.0941
+        },
+        "problem": {
+          "tfidf": 0.0,
+          "dense": 0.064,
+          "diff_dense_minus_tfidf": 0.064
+        },
+        "objectives": {
+          "tfidf": 0.021,
+          "dense": 0.3404,
+          "diff_dense_minus_tfidf": 0.3194
+        },
+        "methodology": {
+          "tfidf": 0.0,
+          "dense": 0.3668,
+          "diff_dense_minus_tfidf": 0.3668
+        },
+        "dataset": {
+          "tfidf": 0.0,
+          "dense": -0.0526,
+          "diff_dense_minus_tfidf": -0.0526
+        },
+        "algorithm": {
+          "tfidf": 1.0,
+          "dense": 0.4748,
+          "diff_dense_minus_tfidf": -0.5252
+        },
+        "technology": {
+          "tfidf": 0.0423,
+          "dense": 0.2894,
+          "diff_dense_minus_tfidf": 0.2471
+        }
+      },
+      "method_evaluations": {
+        "prod_ridge_tfidf": {
+          "target_sim": 0.0,
+          "target_novelty_pct": 100.0,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 600,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0287",
+          "top_1_similarity": 1.4064,
+          "top_5_retrieved": [
+            "SYN-0287",
+            "SYN-0054",
+            "SYN-0132",
+            "SYN-0520",
+            "SYN-0209"
+          ]
+        },
+        "cand_constrained_tfidf": {
+          "target_sim": 0.2749,
+          "target_novelty_pct": 93.13,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 94,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0468",
+          "top_1_similarity": 1.5299,
+          "top_5_retrieved": [
+            "SYN-0468",
+            "SYN-0235",
+            "SYN-0002",
+            "SYN-0132",
+            "SYN-0080"
+          ]
+        },
+        "semantic_only": {
+          "target_sim": 0.5321,
+          "target_novelty_pct": 86.7,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 397,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0204",
+          "top_1_similarity": 1.6488,
+          "top_5_retrieved": [
+            "SYN-0204",
+            "SYN-0437",
+            "SYN-0049",
+            "SYN-0101",
+            "SYN-0153"
+          ]
+        },
+        "hybrid_alpha_025": {
+          "target_sim": 0.4678,
+          "target_novelty_pct": 88.31,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 322,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0204",
+          "top_1_similarity": 1.3627,
+          "top_5_retrieved": [
+            "SYN-0204",
+            "SYN-0437",
+            "SYN-0386",
+            "SYN-0127",
+            "SYN-0235"
+          ]
+        },
+        "hybrid_alpha_050": {
+          "target_sim": 0.4035,
+          "target_novelty_pct": 89.91,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 222,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0235",
+          "top_1_similarity": 1.343,
+          "top_5_retrieved": [
+            "SYN-0235",
+            "SYN-0468",
+            "SYN-0080",
+            "SYN-0132",
+            "SYN-0002"
+          ]
+        },
+        "hybrid_alpha_075": {
+          "target_sim": 0.3392,
+          "target_novelty_pct": 91.52,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 131,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0235",
+          "top_1_similarity": 1.4351,
+          "top_5_retrieved": [
+            "SYN-0235",
+            "SYN-0468",
+            "SYN-0080",
+            "SYN-0132",
+            "SYN-0002"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CASE_F_SAME_DATASET_DIFF_OBJECTIVES",
+      "case_name": "Same Dataset (PlantVillage), Different Research Objectives",
+      "target_ref_id": "SYN-0001",
+      "expected_relationship": "Dataset Overlap with Distinct Methodology & Task",
+      "section_similarities_against_target": {
+        "title": {
+          "tfidf": 0.0,
+          "dense": 0.2337,
+          "diff_dense_minus_tfidf": 0.2337
+        },
+        "abstract": {
+          "tfidf": 0.0,
+          "dense": 0.3799,
+          "diff_dense_minus_tfidf": 0.3799
+        },
+        "problem": {
+          "tfidf": 0.0,
+          "dense": 0.3456,
+          "diff_dense_minus_tfidf": 0.3456
+        },
+        "objectives": {
+          "tfidf": 0.0902,
+          "dense": 0.2005,
+          "diff_dense_minus_tfidf": 0.1104
+        },
+        "methodology": {
+          "tfidf": 0.0,
+          "dense": 0.075,
+          "diff_dense_minus_tfidf": 0.075
+        },
+        "dataset": {
+          "tfidf": 1.0,
+          "dense": 1.0,
+          "diff_dense_minus_tfidf": -0.0
+        },
+        "algorithm": {
+          "tfidf": 0.0,
+          "dense": 0.1149,
+          "diff_dense_minus_tfidf": 0.1149
+        },
+        "technology": {
+          "tfidf": 0.0,
+          "dense": 0.3124,
+          "diff_dense_minus_tfidf": 0.3124
+        }
+      },
+      "method_evaluations": {
+        "prod_ridge_tfidf": {
+          "target_sim": 2.1562,
+          "target_novelty_pct": 46.1,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 36,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0043",
+          "top_1_similarity": 2.1601,
+          "top_5_retrieved": [
+            "SYN-0043",
+            "SYN-0147",
+            "SYN-0173",
+            "SYN-0017",
+            "SYN-0157"
+          ]
+        },
+        "cand_constrained_tfidf": {
+          "target_sim": 1.9529,
+          "target_novelty_pct": 51.18,
+          "target_tier": "Moderate Novelty (Partial Overlap)",
+          "target_rank": 32,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0415",
+          "top_1_similarity": 2.4087,
+          "top_5_retrieved": [
+            "SYN-0415",
+            "SYN-0571",
+            "SYN-0121",
+            "SYN-0354",
+            "SYN-0234"
+          ]
+        },
+        "semantic_only": {
+          "target_sim": 2.4278,
+          "target_novelty_pct": 39.3,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 25,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0571",
+          "top_1_similarity": 2.7829,
+          "top_5_retrieved": [
+            "SYN-0571",
+            "SYN-0095",
+            "SYN-0415",
+            "SYN-0364",
+            "SYN-0131"
+          ]
+        },
+        "hybrid_alpha_025": {
+          "target_sim": 2.3091,
+          "target_novelty_pct": 42.27,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 28,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0571",
+          "top_1_similarity": 2.6828,
+          "top_5_retrieved": [
+            "SYN-0571",
+            "SYN-0415",
+            "SYN-0095",
+            "SYN-0131",
+            "SYN-0364"
+          ]
+        },
+        "hybrid_alpha_050": {
+          "target_sim": 2.1903,
+          "target_novelty_pct": 45.24,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 28,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0571",
+          "top_1_similarity": 2.5828,
+          "top_5_retrieved": [
+            "SYN-0571",
+            "SYN-0415",
+            "SYN-0131",
+            "SYN-0095",
+            "SYN-0121"
+          ]
+        },
+        "hybrid_alpha_075": {
+          "target_sim": 2.0716,
+          "target_novelty_pct": 48.21,
+          "target_tier": "Low Novelty (Significant Prior Work)",
+          "target_rank": 31,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0415",
+          "top_1_similarity": 2.4889,
+          "top_5_retrieved": [
+            "SYN-0415",
+            "SYN-0571",
+            "SYN-0121",
+            "SYN-0131",
+            "SYN-0354"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CASE_G_SAME_ALGO_DIFF_APPLICATION",
+      "case_name": "Same Algorithm (CNN), Completely Different Application Domain",
+      "target_ref_id": "SYN-0001",
+      "expected_relationship": "Algorithmic Tool Overlap with Different Application",
+      "section_similarities_against_target": {
+        "title": {
+          "tfidf": 0.3111,
+          "dense": 0.3355,
+          "diff_dense_minus_tfidf": 0.0244
+        },
+        "abstract": {
+          "tfidf": 0.162,
+          "dense": 0.3596,
+          "diff_dense_minus_tfidf": 0.1976
+        },
+        "problem": {
+          "tfidf": 0.0874,
+          "dense": 0.0951,
+          "diff_dense_minus_tfidf": 0.0078
+        },
+        "objectives": {
+          "tfidf": 0.021,
+          "dense": 0.3465,
+          "diff_dense_minus_tfidf": 0.3255
+        },
+        "methodology": {
+          "tfidf": 0.1839,
+          "dense": 0.301,
+          "diff_dense_minus_tfidf": 0.1171
+        },
+        "dataset": {
+          "tfidf": 0.0,
+          "dense": 0.0747,
+          "diff_dense_minus_tfidf": 0.0747
+        },
+        "algorithm": {
+          "tfidf": 1.0,
+          "dense": 0.5811,
+          "diff_dense_minus_tfidf": -0.4189
+        },
+        "technology": {
+          "tfidf": 0.0636,
+          "dense": 0.4237,
+          "diff_dense_minus_tfidf": 0.3601
+        }
+      },
+      "method_evaluations": {
+        "prod_ridge_tfidf": {
+          "target_sim": 0.0,
+          "target_novelty_pct": 100.0,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 600,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0306",
+          "top_1_similarity": 0.4631,
+          "top_5_retrieved": [
+            "SYN-0306",
+            "SYN-0228",
+            "SYN-0078",
+            "SYN-0311",
+            "SYN-0202"
+          ]
+        },
+        "cand_constrained_tfidf": {
+          "target_sim": 0.4117,
+          "target_novelty_pct": 89.71,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 293,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0270",
+          "top_1_similarity": 1.1301,
+          "top_5_retrieved": [
+            "SYN-0270",
+            "SYN-0503",
+            "SYN-0182",
+            "SYN-0379",
+            "SYN-0539"
+          ]
+        },
+        "semantic_only": {
+          "target_sim": 0.8828,
+          "target_novelty_pct": 77.93,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 230,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0270",
+          "top_1_similarity": 1.7393,
+          "top_5_retrieved": [
+            "SYN-0270",
+            "SYN-0374",
+            "SYN-0218",
+            "SYN-0503",
+            "SYN-0193"
+          ]
+        },
+        "hybrid_alpha_025": {
+          "target_sim": 0.765,
+          "target_novelty_pct": 80.88,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 243,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0270",
+          "top_1_similarity": 1.587,
+          "top_5_retrieved": [
+            "SYN-0270",
+            "SYN-0503",
+            "SYN-0374",
+            "SYN-0218",
+            "SYN-0193"
+          ]
+        },
+        "hybrid_alpha_050": {
+          "target_sim": 0.6472,
+          "target_novelty_pct": 83.82,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 261,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0270",
+          "top_1_similarity": 1.4347,
+          "top_5_retrieved": [
+            "SYN-0270",
+            "SYN-0503",
+            "SYN-0374",
+            "SYN-0218",
+            "SYN-0379"
+          ]
+        },
+        "hybrid_alpha_075": {
+          "target_sim": 0.5294,
+          "target_novelty_pct": 86.76,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 284,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0270",
+          "top_1_similarity": 1.2824,
+          "top_5_retrieved": [
+            "SYN-0270",
+            "SYN-0503",
+            "SYN-0374",
+            "SYN-0379",
+            "SYN-0182"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CASE_H_SUPERFICIAL_WORDING_DIFF_OBJECTIVES",
+      "case_name": "Superficially Similar Wording, Substantially Different Research",
+      "target_ref_id": "SYN-0001",
+      "expected_relationship": "Superficial Jargon Overlap / Different Academic Field",
+      "section_similarities_against_target": {
+        "title": {
+          "tfidf": 0.0,
+          "dense": 0.2388,
+          "diff_dense_minus_tfidf": 0.2388
+        },
+        "abstract": {
+          "tfidf": 0.3951,
+          "dense": 0.4403,
+          "diff_dense_minus_tfidf": 0.0452
+        },
+        "problem": {
+          "tfidf": 0.7831,
+          "dense": 0.6817,
+          "diff_dense_minus_tfidf": -0.1015
+        },
+        "objectives": {
+          "tfidf": 0.2254,
+          "dense": 0.5436,
+          "diff_dense_minus_tfidf": 0.3182
+        },
+        "methodology": {
+          "tfidf": 0.0,
+          "dense": -0.0148,
+          "diff_dense_minus_tfidf": -0.0148
+        },
+        "dataset": {
+          "tfidf": 0.0,
+          "dense": 0.2439,
+          "diff_dense_minus_tfidf": 0.2439
+        },
+        "algorithm": {
+          "tfidf": 0.0,
+          "dense": -0.0354,
+          "diff_dense_minus_tfidf": -0.0354
+        },
+        "technology": {
+          "tfidf": 0.0,
+          "dense": 0.0222,
+          "diff_dense_minus_tfidf": 0.0222
+        }
+      },
+      "method_evaluations": {
+        "prod_ridge_tfidf": {
+          "target_sim": 0.0414,
+          "target_novelty_pct": 98.96,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 23,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0493",
+          "top_1_similarity": 0.0608,
+          "top_5_retrieved": [
+            "SYN-0493",
+            "SYN-0027",
+            "SYN-0260",
+            "SYN-0183",
+            "SYN-0415"
+          ]
+        },
+        "cand_constrained_tfidf": {
+          "target_sim": 0.0,
+          "target_novelty_pct": 100.0,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 275,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0545",
+          "top_1_similarity": 0.0879,
+          "top_5_retrieved": [
+            "SYN-0545",
+            "SYN-0519",
+            "SYN-0415",
+            "SYN-0441",
+            "SYN-0466"
+          ]
+        },
+        "semantic_only": {
+          "target_sim": 0.7142,
+          "target_novelty_pct": 82.14,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 79,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0591",
+          "top_1_similarity": 1.1403,
+          "top_5_retrieved": [
+            "SYN-0591",
+            "SYN-0125",
+            "SYN-0596",
+            "SYN-0565",
+            "SYN-0285"
+          ]
+        },
+        "hybrid_alpha_025": {
+          "target_sim": 0.5357,
+          "target_novelty_pct": 86.61,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 79,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0591",
+          "top_1_similarity": 0.8618,
+          "top_5_retrieved": [
+            "SYN-0591",
+            "SYN-0125",
+            "SYN-0565",
+            "SYN-0596",
+            "SYN-0414"
+          ]
+        },
+        "hybrid_alpha_050": {
+          "target_sim": 0.3571,
+          "target_novelty_pct": 91.07,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 81,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0565",
+          "top_1_similarity": 0.5981,
+          "top_5_retrieved": [
+            "SYN-0565",
+            "SYN-0414",
+            "SYN-0591",
+            "SYN-0440",
+            "SYN-0466"
+          ]
+        },
+        "hybrid_alpha_075": {
+          "target_sim": 0.1786,
+          "target_novelty_pct": 95.54,
+          "target_tier": "High estimated novelty relative to the current database",
+          "target_rank": 92,
+          "in_top_1": false,
+          "in_top_3": false,
+          "in_top_5": false,
+          "top_1_project_id": "SYN-0565",
+          "top_1_similarity": 0.343,
+          "top_5_retrieved": [
+            "SYN-0565",
+            "SYN-0414",
+            "SYN-0440",
+            "SYN-0466",
+            "SYN-0544"
+          ]
+        }
+      }
+    }
+  ],
+  "retrieval_summary_stats": {
+    "prod_ridge_tfidf": {
+      "paraphrase_cases_top1": "0/3",
+      "paraphrase_cases_top3": "0/3",
+      "paraphrase_cases_top5": "1/3",
+      "distractor_filtered_top1": "5/5"
+    },
+    "cand_constrained_tfidf": {
+      "paraphrase_cases_top1": "1/3",
+      "paraphrase_cases_top3": "2/3",
+      "paraphrase_cases_top5": "2/3",
+      "distractor_filtered_top1": "5/5"
+    },
+    "semantic_only": {
+      "paraphrase_cases_top1": "2/3",
+      "paraphrase_cases_top3": "2/3",
+      "paraphrase_cases_top5": "2/3",
+      "distractor_filtered_top1": "5/5"
+    },
+    "hybrid_alpha_025": {
+      "paraphrase_cases_top1": "2/3",
+      "paraphrase_cases_top3": "2/3",
+      "paraphrase_cases_top5": "2/3",
+      "distractor_filtered_top1": "5/5"
+    },
+    "hybrid_alpha_050": {
+      "paraphrase_cases_top1": "2/3",
+      "paraphrase_cases_top3": "2/3",
+      "paraphrase_cases_top5": "2/3",
+      "distractor_filtered_top1": "5/5"
+    },
+    "hybrid_alpha_075": {
+      "paraphrase_cases_top1": "1/3",
+      "paraphrase_cases_top3": "2/3",
+      "paraphrase_cases_top5": "2/3",
+      "distractor_filtered_top1": "5/5"
+    }
+  }
+}

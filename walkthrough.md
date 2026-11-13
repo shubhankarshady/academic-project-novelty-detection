@@ -1,81 +1,96 @@
 # Walkthrough - Academic Project Novelty Detection
 
-We have completed the implementation across all three planned phases:
-
-1. **Notebook 05 Implementation**: Full section fusion optimization, model training (Ridge, Random Forest, SLSQP Constrained Weights), metric evaluation, and novelty score distribution analysis.
-2. **Codebase Modularization (`src/`)**: Created production-grade Python package with data loaders, section TF-IDF vectorizers, section fusion models, and evaluation metrics.
-3. **CLI / API Tooling (`scripts/`)**: Created training (`scripts/train.py`), candidate project scoring (`scripts/score_novelty.py`), and pipeline execution (`scripts/run_pipeline.py`).
+This document summarizes the development milestones of the Academic Project Novelty Detection platform, comparing exploratory notebook results with the verified active production implementation.
 
 ---
 
-## 1. Accomplished Tasks
+## 1. System Implementation Summary
 
-### Phase 1: Notebook 05 — Weighted Section Fusion
-- **File**: [`notebooks/05_weighted_section_fusion.ipynb`](file:///D:/mega/academic-project-novelty-detection/notebooks/05_weighted_section_fusion.ipynb)
-- **Status**: Executed & Fully Rendered (143 KB notebook output).
-- **Key Results**:
-  - **Unweighted Mean Baseline**: RMSE `0.9187`
-  - **Constrained Optimization (SLSQP)**: RMSE `0.7280` ($R^2 = 0.7315$)
-    - Section Weights: Dataset (`49.6%`), Title (`22.7%`), Technology (`18.9%`), Methodology (`8.7%`)
-  - **Ridge Regression**: RMSE `0.6867` ($R^2 = 0.7610$)
-  - **Random Forest Regressor**: RMSE `0.7063` ($R^2 = 0.7472$)
-  - **Novelty Score Range**: `22.7%` to `99.4%` (Mean: `65.5%`)
-
----
-
-### Phase 2: Modular Codebase (`src/`)
-- [`src/data/loader.py`](file:///D:/mega/academic-project-novelty-detection/src/data/loader.py): Load raw Excel projects, ground-truth similarity pairs, and feature CSVs.
-- [`src/features/section_tfidf.py`](file:///D:/mega/academic-project-novelty-detection/src/features/section_tfidf.py): `SectionTFIDFExtractor` class to vectorize 8 text sections and compute pairwise/candidate similarities.
-- [`src/models/fusion_model.py`](file:///D:/mega/academic-project-novelty-detection/src/models/fusion_model.py): `ConstrainedSectionFusion` and `SectionFusionRegressor` (Ridge & Random Forest wrappers with joblib serialization).
-- [`src/utils/metrics.py`](file:///D:/mega/academic-project-novelty-detection/src/utils/metrics.py): Regression evaluation (RMSE, MAE, $R^2$, Pearson $r$, Spearman $\rho$) and Novelty Score calculations.
+The project consists of three core functional phases:
+1. **Exploratory Modeling (`notebooks/`)**: Section fusion optimization, model training (Ridge, Random Forest, SLSQP Constrained Weights), dense semantic transformer experiments, and error analysis.
+2. **Modular Library (`src/`)**: Clean package structure featuring:
+   - [`src/data/loader.py`](file:///src/data/loader.py): Dataset and feature loaders.
+   - [`src/features/section_tfidf.py`](file:///src/features/section_tfidf.py): 8-section TF-IDF vectorizers and cosine similarity calculations.
+   - [`src/features/dense_embeddings.py`](file:///src/features/dense_embeddings.py): Dense transformer (`all-MiniLM-L6-v2`) section embedding extractor.
+   - [`src/models/fusion_model.py`](file:///src/models/fusion_model.py) & [`src/models/hybrid_fusion.py`](file:///src/models/hybrid_fusion.py): Ridge, Random Forest, and Hybrid fusion models.
+   - [`src/explainability/explainer.py`](file:///src/explainability/explainer.py): XAI engine with additive Ridge reconstruction and whole-word keyword evidence.
+   - [`src/storage/db.py`](file:///src/storage/db.py): SQLite persistence layer with deterministic SHA-256 deduplication.
+   - [`src/api/`](file:///src/api/): FastAPI application with endpoints for evaluation, saving, and historical querying.
+3. **Application & Verification Tooling**:
+   - `frontend/`: React 19 + Vite 8 + Tailwind CSS v4 interactive dashboard, evaluation forms, and audit history.
+   - `scripts/`: CLI scoring tool ([`scripts/score_novelty.py`](file:///scripts/score_novelty.py)), training pipeline ([`scripts/train.py`](file:///scripts/train.py)), and holdout evaluation ([`scripts/evaluate_holdout.py`](file:///scripts/evaluate_holdout.py)).
+   - `tests/`: 49 comprehensive unit and integration tests across API, storage, XAI, and scientific reliability.
 
 ---
 
-### Phase 3: CLI Tools (`scripts/`)
-- [`scripts/train.py`](file:///D:/mega/academic-project-novelty-detection/scripts/train.py): Trains vectorizers and models, saving checkpoints to [`models/`](file:///D:/mega/academic-project-novelty-detection/models/).
-- [`scripts/score_novelty.py`](file:///D:/mega/academic-project-novelty-detection/scripts/score_novelty.py): CLI tool to evaluate candidate project proposals against corpus projects and report percentage novelty score + top $K$ matches.
-- [`scripts/run_pipeline.py`](file:///D:/mega/academic-project-novelty-detection/scripts/run_pipeline.py): End-to-end pipeline runner.
+## 2. Active Model vs. Historical Notebook Experiments
+
+### Exploratory Notebook 05 (Historical SLSQP Exploration)
+During initial exploration in [`notebooks/05_weighted_section_fusion.ipynb`](file:///notebooks/05_weighted_section_fusion.ipynb), a constrained least squares (SLSQP) model was tested where section weights were constrained to sum to $1.0$:
+- Constrained SLSQP Weights: Dataset ($49.2\%$), Title ($23.2\%$), Technology ($19.6\%$), Methodology ($8.0\%$), all others ($0.0\%$).
+
+### Active Deployed Production Model ([`models/ridge_fusion_model.joblib`](file:///models/ridge_fusion_model.joblib))
+The active model used by [`NoveltyService`](file:///src/api/service.py) and [`score_novelty.py`](file:///scripts/score_novelty.py) is an **unconstrained Ridge Regression model ($\alpha=1.0$)** operating on 8 continuous section similarities:
+- **Intercept ($b$):** `-0.0706`
+- **Active Section Coefficients ($w_i$):**
+  - `title_similarity`: `+0.1340`
+  - `abstract_similarity`: `+0.3980`
+  - `problem_similarity`: `-0.1259` *(Negative)*
+  - `objectives_similarity`: `+0.2367`
+  - `methodology_similarity`: `+0.0099`
+  - `dataset_similarity`: `+2.2054` *(Dominates >55% of total scale)*
+  - `algorithm_similarity`: `-0.0651` *(Negative)*
+  - `technology_similarity`: `-0.1456` *(Negative)*
+
+### Inactive 16-Feature Hybrid Model ([`models/hybrid_fusion_model.joblib`](file:///models/hybrid_fusion_model.joblib))
+A hybrid model combining 8 TF-IDF similarities with 8 dense transformer similarities (`all-MiniLM-L6-v2`) exists as a saved artifact. It is currently **inactive in runtime API serving** due to feature collinearity and negative dense coefficients on synthetic benchmark labels.
 
 ---
 
-## 2. Verification & Validation
+## 3. Important Implementation & Evaluation Realities
 
-### Automated Verification Output
+> [!WARNING]
+> **Synthetic Ground Truth Labels:**
+> All 3,000 pairwise similarity ratings in the benchmark dataset originate from heuristic generation rules (`annotation_note: "SYNTHETIC BENCHMARK LABEL"`). Zero completed human faculty annotations currently exist. High regression metrics evaluate consistency with the synthetic rule function, not real-world academic novelty detection.
 
-1. **Model Training Script (`scripts/train.py`)**:
+> [!CAUTION]
+> **Known Prediction Range & Non-Monotonicity Defects:**
+> 1. **Theoretical Ceiling:** The maximum possible raw prediction of the active Ridge model for an identical duplicate ($X=\vec{1}$) is $b + \sum w_i = 2.5768 / 4.0$. Consequently, an exact copy receives a novelty score of $35.58\%$, and the $< 25\%$ "Potential Duplicate" tier is mathematically unreachable.
+> 2. **Non-Monotonicity:** Because `technology_tools` ($-0.1456$), `problem_statement` ($-0.1259$), and `algorithm_model` ($-0.0651$) have negative weights, sharing identical technologies penalizes predicted similarity, causing an exact duplicate of a project to rank #6 behind near-peers with differing tools.
+
+> [!NOTE]
+> **Database Segregation & Reference Corpus Independence:**
+> User proposals saved to SQLite via POST `/api/save` are strictly persisted for auditing and user history. They do **not** enter the TF-IDF reference matrix and do **not** trigger model retraining. The reference corpus remains fixed at the 600 baseline projects.
+
+---
+
+## 4. Verified Automated Test Results
+
+The test suite validates the operational integrity of the system:
 ```text
-Learned Weights:
-   title_similarity         :  23.2%
-   abstract_similarity      :   0.0%
-   problem_similarity       :   0.0%
-   objectives_similarity    :   0.0%
-   methodology_similarity   :   8.0%
-   dataset_similarity       :  49.2%
-   algorithm_similarity     :   0.0%
-   technology_similarity    :  19.6%
+tests/test_api.py ..........                                             [ 20%]
+tests/test_scientific_reliability.py ..........                          [ 40%]
+tests/test_storage.py ..............                                     [ 69%]
+tests/test_xai.py ...............                                        [100%]
 
-Training Metrics (Ridge):
-   rmse           : 0.6726
-   mae            : 0.4826
-   r2             : 0.7709
-   pearson_r      : 0.8780
-   spearman_rho   : 0.7898
+======================= 49 passed, 3 warnings in 9.80s ========================
 ```
+*(Warnings reflect scikit-learn unpickling version differences: model artifacts created with 1.9.1 loaded in 1.8.0 environment).*
 
-2. **Novelty Scoring CLI (`scripts/score_novelty.py`)**:
+### Verified CLI Novelty Scoring Execution
+```bash
+python scripts/score_novelty.py \
+  --title "Quantum Machine Learning for Medical Image Segmentation" \
+  --abstract "We propose quantum graph networks for medical image segmentation." \
+  --top_k 2
+```
 ```text
 ======================================================================
            ACADEMIC PROJECT NOVELTY INSPECTION REPORT
 ======================================================================
 Candidate Title       : Quantum Machine Learning for Medical Image Segmentation
-Overall Novelty Score : 75.7%
-Novelty Assessment    : High Novelty (Original Work)
-Max Similarity Score  : 0.97 / 4.00 (against Project ID: SYN-0425)
+Overall Novelty Score : 99.4%
+Novelty Assessment    : High estimated novelty relative to the current database
+Max Similarity Score  : 0.02 / 4.00 (against Project ID: SYN-0569)
 ======================================================================
-
-Top 3 Most Similar Existing Projects:
-----------------------------------------------------------------------
-Rank 1: Project ID [SYN-0425]
-   Predicted Similarity: 0.97 / 4.00
-   Section Matches     : Title=0.00, Abstract=0.03, Dataset=0.45, Algo=0.00
 ```

@@ -56,6 +56,15 @@ export function SimilarProjectCard({ match, rank, isTopMatch = false }) {
               <span className="text-xs text-slate-500 font-medium">
                 {match.historical_domain || 'General'}
               </span>
+              {match.scoring_mode === 'hybrid' ? (
+                <Badge variant="purple" size="sm">
+                  Hybrid (α={match.hybrid_alpha ?? 0.5})
+                </Badge>
+              ) : (
+                <Badge variant="neutral" size="sm">
+                  TF-IDF Lexical
+                </Badge>
+              )}
               {isTopMatch && (
                 <Badge variant="indigo" size="sm">
                   Closest Historical Match
@@ -72,9 +81,17 @@ export function SimilarProjectCard({ match, rank, isTopMatch = false }) {
         {/* Right Metric Pill & Toggle */}
         <div className="flex items-center gap-4 shrink-0 self-end md:self-auto">
           <div className="text-right">
-            <div className="text-xs text-slate-500 font-medium">Multi-Section Similarity</div>
+            <div className="text-xs text-slate-500 font-medium">Estimated Novelty</div>
             <div className="text-lg font-black text-slate-900 font-mono">
-              {formatScore(match.predicted_similarity)}
+              {formatPercent(match.novelty_score_pct)}
+            </div>
+            <div className="text-[11px] text-slate-500 font-mono">
+              Similarity: {formatScore(match.predicted_similarity)} / 4.0
+            </div>
+            <div className="text-[11px] font-semibold text-indigo-600 mt-0.5">
+              {match.novelty_category?.includes('Duplicate')
+                ? 'Requires Faculty Review'
+                : match.novelty_category || 'Novelty Assessment'}
             </div>
           </div>
 
@@ -139,73 +156,123 @@ export function SimilarProjectCard({ match, rank, isTopMatch = false }) {
           </div>
 
           {/* Ranked Sections Table */}
-          {rankedSections.length > 0 && (
-            <div>
-              <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-indigo-500" />
-                Section-by-Section Feature Breakdown
-              </h5>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
-                    <tr>
-                      <th className="py-2.5 px-3">Section</th>
-                      <th className="py-2.5 px-3">Cosine Similarity</th>
-                      <th className="py-2.5 px-3">Model Weight</th>
-                      <th className="py-2.5 px-3">Signed Contribution</th>
-                      <th className="py-2.5 px-3 text-right">Shared Terms</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-normal">
-                    {rankedSections.map((row) => {
-                      const evidence = sectionEvidence[row.section];
-                      const sharedCount = evidence?.shared_terms_count ?? 0;
-                      const isSelected = selectedSectionEvidence === row.section;
+          {rankedSections.length > 0 && (() => {
+            const isHybrid =
+              match.scoring_mode === 'hybrid' ||
+              rankedSections.some(
+                (r) => r.hybrid_similarity !== undefined && r.hybrid_similarity !== null
+              );
 
-                      return (
-                        <tr
-                          key={row.section}
-                          onClick={() =>
-                            setSelectedSectionEvidence(isSelected ? null : row.section)
-                          }
-                          className={`hover:bg-slate-50 cursor-pointer transition-colors ${
-                            isSelected ? 'bg-indigo-50/60 font-medium' : ''
-                          }`}
-                        >
-                          <td className="py-2.5 px-3 font-medium text-slate-900">
-                            {getSectionLabel(row.section)}
-                          </td>
-                          <td className="py-2.5 px-3 font-mono">
-                            {formatScore(row.raw_similarity)}
-                          </td>
-                          <td className="py-2.5 px-3 font-mono text-slate-500">
-                            {row.model_weight.toFixed(4)}
-                          </td>
-                          <td className="py-2.5 px-3 font-mono">
-                            <span
-                              className={
-                                row.signed_contribution >= 0
-                                  ? 'text-indigo-600 font-semibold'
-                                  : 'text-sky-600'
-                              }
-                            >
-                              {row.signed_contribution > 0 ? '+' : ''}
-                              {row.signed_contribution.toFixed(4)}
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3 text-right">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-slate-100 text-slate-700">
-                              {sharedCount} terms
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                    Section-by-Section Feature Breakdown
+                  </h5>
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    {isHybrid
+                      ? `Hybrid Mode (α=${match.hybrid_alpha ?? 0.50}: ${((match.hybrid_alpha ?? 0.5) * 100).toFixed(0)}% Lexical / ${(100 - (match.hybrid_alpha ?? 0.5) * 100).toFixed(0)}% Semantic)`
+                      : 'Production Mode: Exact Lexical TF-IDF'}
+                  </span>
+                </div>
+                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Section</th>
+                        {isHybrid ? (
+                          <>
+                            <th className="py-2.5 px-3">Lexical (TF-IDF)</th>
+                            <th className="py-2.5 px-3">Semantic (Dense)</th>
+                            <th className="py-2.5 px-3">Combined (Hybrid)</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="py-2.5 px-3">Cosine Similarity</th>
+                            <th className="py-2.5 px-3 text-slate-400 font-normal">
+                              Semantic (Dense)
+                            </th>
+                          </>
+                        )}
+                        <th className="py-2.5 px-3">Model Weight</th>
+                        <th className="py-2.5 px-3">Contribution</th>
+                        <th className="py-2.5 px-3 text-right">Shared Terms</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-normal">
+                      {rankedSections.map((row) => {
+                        const evidence = sectionEvidence[row.section];
+                        const sharedCount = evidence?.shared_terms_count ?? 0;
+                        const isSelected = selectedSectionEvidence === row.section;
+
+                        return (
+                          <tr
+                            key={row.section}
+                            onClick={() =>
+                              setSelectedSectionEvidence(isSelected ? null : row.section)
+                            }
+                            className={`hover:bg-slate-50 cursor-pointer transition-colors ${
+                              isSelected ? 'bg-indigo-50/60 font-medium' : ''
+                            }`}
+                          >
+                            <td className="py-2.5 px-3 font-medium text-slate-900">
+                              {getSectionLabel(row.section)}
+                            </td>
+                            {isHybrid ? (
+                              <>
+                                <td className="py-2.5 px-3 font-mono text-slate-700">
+                                  {formatScore(row.lexical_similarity ?? row.raw_similarity)}
+                                </td>
+                                <td className="py-2.5 px-3 font-mono text-purple-700 font-medium">
+                                  {row.semantic_similarity !== undefined &&
+                                  row.semantic_similarity !== null
+                                    ? formatScore(row.semantic_similarity)
+                                    : '—'}
+                                </td>
+                                <td className="py-2.5 px-3 font-mono font-bold text-indigo-700">
+                                  {formatScore(row.hybrid_similarity ?? row.raw_similarity)}
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="py-2.5 px-3 font-mono">
+                                  {formatScore(row.raw_similarity)}
+                                </td>
+                                <td className="py-2.5 px-3 text-[11px] text-slate-400 italic">
+                                  Unavailable in TF-IDF mode
+                                </td>
+                              </>
+                            )}
+                            <td className="py-2.5 px-3 font-mono text-slate-500">
+                              {row.model_weight.toFixed(4)}
+                            </td>
+                            <td className="py-2.5 px-3 font-mono">
+                              <span
+                                className={
+                                  row.signed_contribution >= 0
+                                    ? 'text-indigo-600 font-semibold'
+                                    : 'text-sky-600'
+                                }
+                              >
+                                {row.signed_contribution > 0 ? '+' : ''}
+                                {row.signed_contribution.toFixed(4)}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-slate-100 text-slate-700">
+                                {sharedCount} terms
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Section Evidence Snippets (Candidate vs Historical) */}
           <div>

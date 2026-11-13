@@ -86,7 +86,8 @@ def get_health(
     db: DatabaseManager = Depends(get_db)
 ):
     """
-    Check API health and report reference corpus size vs. submitted user proposals count.
+    Check API health and report reference corpus size vs. submitted user proposals count,
+    including the active scoring mode and configured hybrid alpha.
     """
     ref_count = service.reference_corpus_size
     sub_count = db.count_proposals()
@@ -95,9 +96,12 @@ def get_health(
         reference_corpus_size=ref_count,
         submitted_proposals_count=sub_count,
         model_loaded=True,
+        active_scoring_mode=service.scoring_mode,
+        hybrid_alpha=service.hybrid_alpha,
         message=(
             f"Active. Reference corpus contains {ref_count} baseline historical projects. "
-            f"Database contains {sub_count} user-submitted proposals."
+            f"Database contains {sub_count} user-submitted proposals. "
+            f"Active scoring mode: {service.scoring_mode} (alpha={service.hybrid_alpha:.2f})."
         )
     )
 
@@ -105,20 +109,33 @@ def get_health(
 @app.post("/api/score", response_model=ProposalEvaluationResponse, tags=["Evaluation"])
 def score_proposal(
     proposal: ProposalInput,
+    mode: Optional[str] = Query(None, description="Optional override for scoring mode: 'tfidf' or 'hybrid'"),
+    alpha: Optional[float] = Query(None, description="Optional override for hybrid alpha between 0.0 and 1.0"),
     service: NoveltyService = Depends(get_novelty_service)
 ):
     """
     Evaluate a candidate academic proposal against the historical reference corpus.
     Does NOT save the proposal to SQLite or mutate the reference corpus.
     Candidate is strictly excluded from matching itself.
+    Supports selecting between production 'tfidf' mode and experimental 'hybrid' mode.
     """
     try:
         candidate_dict = proposal.model_dump()
-        result = service.score_proposal(candidate_dict=candidate_dict, top_k=5)
+        result = service.score_proposal(
+            candidate_dict=candidate_dict,
+            top_k=5,
+            scoring_mode=mode,
+            hybrid_alpha=alpha
+        )
         return result
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(e)
         )
     except Exception as e:
