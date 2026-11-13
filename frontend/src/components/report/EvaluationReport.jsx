@@ -16,6 +16,7 @@ import { Badge } from '../ui/Badge';
 import { NoveltyGauge } from './NoveltyGauge';
 import { SectionCharts } from './SectionCharts';
 import { SimilarProjectCard } from './SimilarProjectCard';
+import { AIExplanationPanel } from './AIExplanationPanel';
 import { formatPercent, formatScore, formatDate, getTierBadgeProps } from '../../utils/formatters';
 
 export function EvaluationReport({
@@ -67,7 +68,7 @@ export function EvaluationReport({
         </div>
 
         {/* Core Metric Cards */}
-        <div className="flex flex-col justify-between gap-4">
+        <div className="flex flex-col justify-between gap-3">
           <Card className="flex-1 flex flex-col justify-center">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Maximum Historical Similarity
@@ -81,6 +82,42 @@ export function EvaluationReport({
                 {topMatch?.historical_project_id || 'N/A'}
               </strong>
             </p>
+          </Card>
+
+          <Card className="flex-1 flex flex-col justify-center bg-slate-50/70 border-slate-200">
+            <div className="flex items-center justify-between gap-1 mb-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Evaluation Model
+              </span>
+              {report.scoring_mode === 'tuned_hybrid' ? (
+                <Badge variant="indigo" size="sm" dot>
+                  Tuned Hybrid (α={report.hybrid_alpha ?? 0.60})
+                </Badge>
+              ) : report.scoring_mode === 'hybrid' ? (
+                <Badge variant="purple" size="sm">
+                  Hybrid Baseline (α={report.hybrid_alpha ?? 0.50})
+                </Badge>
+              ) : (
+                <Badge variant="neutral" size="sm">
+                  TF-IDF Baseline
+                </Badge>
+              )}
+            </div>
+            <div className="text-xs font-mono font-semibold text-slate-800">
+              {report.scoring_mode === 'tuned_hybrid'
+                ? `60% TF-IDF + 40% Dense (α = ${report.hybrid_alpha ?? 0.60})`
+                : report.scoring_mode === 'hybrid'
+                ? `50% TF-IDF + 50% Dense (α = ${report.hybrid_alpha ?? 0.50})`
+                : '100% Lexical TF-IDF'}
+            </div>
+            {report.scoring_formula && (
+              <div className="text-[10px] text-slate-500 font-mono mt-1 line-clamp-1" title={report.scoring_formula}>
+                {report.scoring_formula}
+              </div>
+            )}
+            <div className="text-[10px] text-slate-400 mt-0.5">
+              Version: {report.model_version || '1.0'}
+            </div>
           </Card>
 
           <Card className="flex-1 flex flex-col justify-center bg-slate-50/70 border-slate-200">
@@ -194,6 +231,13 @@ export function EvaluationReport({
           ))}
         </div>
       </div>
+
+      {/* 6. On-Demand Groq-Powered Explainable AI (XAI) Panel */}
+      <AIExplanationPanel
+        proposalData={proposalData}
+        report={report}
+        scoringMode={report.scoring_mode}
+      />
     </div>
   );
 }

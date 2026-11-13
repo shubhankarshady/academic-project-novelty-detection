@@ -20,8 +20,18 @@ from src.api.schemas import (
     SaveProposalResponse,
     ProposalListResponse,
     ProposalSummaryItem,
+    ExplainProposalRequest,
+    ExplainProposalResponse,
 )
 from src.api.service import NoveltyService, get_novelty_service
+from src.explainability.groq_explainer import (
+    GroqExplainer,
+    get_groq_explainer,
+    GroqKeyMissingError,
+    GroqRateLimitError,
+    GroqTimeoutError,
+    GroqAPIError,
+)
 from src.storage.db import (
     DatabaseManager,
     get_default_manager,
@@ -98,6 +108,8 @@ def get_health(
         model_loaded=True,
         active_scoring_mode=service.scoring_mode,
         hybrid_alpha=service.hybrid_alpha,
+        available_scoring_modes=["tfidf", "hybrid", "tuned_hybrid"],
+        tuned_hybrid_config=service.tuned_config,
         message=(
             f"Active. Reference corpus contains {ref_count} baseline historical projects. "
             f"Database contains {sub_count} user-submitted proposals. "
@@ -109,7 +121,7 @@ def get_health(
 @app.post("/api/score", response_model=ProposalEvaluationResponse, tags=["Evaluation"])
 def score_proposal(
     proposal: ProposalInput,
-    mode: Optional[str] = Query(None, description="Optional override for scoring mode: 'tfidf' or 'hybrid'"),
+    mode: Optional[str] = Query(None, description="Optional override for scoring mode: 'tfidf', 'hybrid', or 'tuned_hybrid'"),
     alpha: Optional[float] = Query(None, description="Optional override for hybrid alpha between 0.0 and 1.0"),
     service: NoveltyService = Depends(get_novelty_service)
 ):
@@ -142,6 +154,61 @@ def score_proposal(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during proposal evaluation: {e}"
+        )
+
+
+@app.post("/api/explain", response_model=ExplainProposalResponse, tags=["Explainability"])
+async def explain_proposal_with_ai(
+    request: ExplainProposalRequest,
+    explainer: GroqExplainer = Depends(get_groq_explainer)
+):
+    """
+    Generate an on-demand Groq-powered academic Explainable AI (XAI) report
+    for a previously evaluated proposal.
+
+    IMPORTANT: This endpoint is called ONLY when the student explicitly clicks
+    'Generate AI Explanation'. It is NEVER called during standard scoring.
+    """
+    proposal_dict = request.proposal.model_dump()
+    eval_report = request.evaluation_report
+
+    if "overall_novelty_score_pct" not in eval_report or "max_similarity_score" not in eval_report:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Evaluation report is incomplete: missing 'overall_novelty_score_pct' or 'max_similarity_score'."
+        )
+
+    try:
+        result = await explainer.explain_proposal(
+            proposal=proposal_dict,
+            evaluation_report=eval_report,
+            force_regenerate=bool(request.force_regenerate)
+        )
+        return ExplainProposalResponse(**result)
+    except GroqKeyMissingError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=e.message
+        )
+    except GroqRateLimitError as e:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=e.message
+        )
+    except GroqTimeoutError as e:
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail=e.message
+        )
+    except GroqAPIError as e:
+        raise HTTPException(
+            status_code=e.status_code if 400 <= e.status_code <= 599 else status.HTTP_502_BAD_GATEWAY,
+            detail=e.message
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred during AI explanation generation: {str(e)}"
         )
 
 

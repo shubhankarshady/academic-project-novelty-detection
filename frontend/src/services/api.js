@@ -75,10 +75,17 @@ export async function getHealth() {
  * Score a proposal (evaluate novelty).
  * Does NOT save the proposal to the database.
  * @param {Object} proposalData - 8 required sections + optional domain/project_id
+ * @param {string|null} mode - 'tfidf', 'hybrid', or 'tuned_hybrid'
+ * @param {number|null} alpha - Optional alpha parameter
  */
-export async function scoreProposal(proposalData) {
+export async function scoreProposal(proposalData, mode = null, alpha = null) {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/score`, {
+    const params = new URLSearchParams();
+    if (mode) params.append('mode', mode);
+    if (alpha !== null && alpha !== undefined) params.append('alpha', alpha);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await fetch(`${API_BASE_URL}/api/score${queryString}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -157,3 +164,34 @@ export async function getProposalById(projectId) {
     throw new ApiError(`Network error while fetching proposal "${projectId}".`, 0);
   }
 }
+
+/**
+ * Request an on-demand Groq AI explanation for an evaluated proposal.
+ * IMPORTANT: Groq is ONLY called upon explicit user button click.
+ * It is NEVER called during ordinary scoring or page load.
+ *
+ * @param {Object} proposalData - 8-section proposal data
+ * @param {Object} evaluationReport - Report returned by scoreProposal
+ * @param {boolean} forceRegenerate - Whether to bypass cache and regenerate
+ */
+export async function generateAIExplanation(proposalData, evaluationReport, forceRegenerate = false) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/explain`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        proposal: proposalData,
+        evaluation_report: evaluationReport,
+        force_regenerate: forceRegenerate,
+      }),
+    });
+    return await handleResponse(res);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError('Network error while requesting AI explanation.', 0);
+  }
+}
+

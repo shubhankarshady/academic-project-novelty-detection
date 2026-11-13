@@ -1,0 +1,57 @@
+```mermaid
+flowchart TD
+    subgraph DataCollection["1. Data Sourcing & Preprocessing"]
+        RawCSV["Raw Academic Corpus CSV<br/>(600 Historical Student & Research Projects)"]
+        CleanPipeline["Data Preprocessing Pipeline<br/>(src/data/preprocessor.py)"]
+        Sections8["8 Normalized Text Fields:<br/>Title, Abstract, Problem, Objectives,<br/>Methodology, Dataset, Algorithm, Tools"]
+        RawCSV --> CleanPipeline
+        CleanPipeline --> Sections8
+    end
+
+    subgraph FeatureEngineering["2. Feature Extraction Pipelines"]
+        TFIDFPipeline["TF-IDF Vectorization Pipeline<br/>(Sublinear TF, N-grams 1-2, Stop-words removed)"]
+        DensePipeline["Dense Semantic Pipeline<br/>(all-MiniLM-L6-v2, 384-dim normalized embeddings)"]
+        Sections8 --> TFIDFPipeline
+        Sections8 --> DensePipeline
+        TFIDFArtifact["section_tfidf_extractor.joblib"]
+        DenseArtifact["section_dense_extractor.joblib"]
+        TFIDFPipeline --> TFIDFArtifact
+        DensePipeline --> DenseArtifact
+    end
+
+    subgraph ModelFitting["3. Model Optimization & Weight Constraints"]
+        RidgeTrain["Ridge Regression Training<br/>(Target: Pairwise Heuristic Similarity 0-4)"]
+        RidgeArtifact["ridge_fusion_model.joblib<br/>(Alpha=100.0, sum(w)=2.647, b=-0.0706)"]
+        CandTrain["Candidate Constrained Fitting<br/>(Non-negative SLSQP/L-BFGS, sum(w)=4.0, b=0.0)"]
+        CandArtifact["candidate_constrained_fusion_model.joblib<br/>(w_dataset=1.95, w_title=0.95, w_tech=0.72, w_meth=0.38)"]
+        TFIDFArtifact --> RidgeTrain
+        RidgeTrain --> RidgeArtifact
+        TFIDFArtifact --> CandTrain
+        CandTrain --> CandArtifact
+    end
+
+    subgraph CalibrationPhase["4. Phase 5 Faculty Calibration & Freezing"]
+        FacultySample["Faculty Evaluation Dataset<br/>(120 pairs reviewed by faculty Reviewer 1)"]
+        SplitDev["DEV_CALIBRATION Cohort (N=30)<br/>5-Fold Cross-Validation"]
+        SplitHeldOut["HELD_OUT_EVALUATION Cohort (N=90)<br/>Strictly Untouched"]
+        FacultySample --> SplitDev
+        FacultySample --> SplitHeldOut
+
+        AlphaSearch["Alpha Grid Search on DEV<br/>(alpha in [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])"]
+        BestAlpha["Optimal Alpha Selected: alpha=0.60<br/>(Min RMSE 0.3921, MBE -0.0356, Exact 80.0%)"]
+        WeightDecision["Weight Adjustment Decision:<br/>Retain Frozen Candidate Weights (avoid overfitting)"]
+        TunedConfig["phase5_tuned_hybrid_config.json<br/>(Frozen for Evaluation)"]
+
+        SplitDev --> AlphaSearch
+        AlphaSearch --> BestAlpha
+        BestAlpha --> WeightDecision
+        CandArtifact --> WeightDecision
+        WeightDecision --> TunedConfig
+
+        HeldOutEval["Single Held-Out Evaluation Run<br/>(N=90 Pairs)"]
+        SplitHeldOut --> HeldOutEval
+        TunedConfig --> HeldOutEval
+        EvalReport["Results: Exact Agreement 84.44% vs 74.44% baseline<br/>Macro F1: 69.72% vs 57.35% baseline"]
+        HeldOutEval --> EvalReport
+    end
+```

@@ -1,12 +1,20 @@
 # Phase 5: Scientific Evaluation & Human Validation Plan
 
 **Academic Project Novelty Detection — Scientific Validation Protocol (Phase 5.2)**  
-**Date**: October 28, 2026  
-**Document Status**: Final Preparation / Ready for Human Annotation (Expanded to 120 Pairs)  
+**Date**: November 13, 2026  
+**Document Status**: Phase 5.3 Preliminary Human Evaluation Completed (Reviewer 1 Annotated; Reviewer 2 Pending)  
 **Target Annotation Dataset**: `data/annotation/faculty_evaluation_sample_120.xlsx`  
 **Programmatic Dataset**: `data/annotation/faculty_evaluation_sample_120.csv`  
 **Research Master Dataset**: `data/annotation/faculty_evaluation_sample_120_master.csv`  
 *(Legacy Reference Sample: `data/annotation/faculty_evaluation_sample_60.xlsx` preserved intact)*  
+
+---
+
+> [!NOTE]
+> **Phase 5.3 Progress Checkpoint (November 13, 2026):**  
+> `Reviewer 1` has completed ratings across all 120 evaluation pairs in `faculty_evaluation_sample_120.xlsx`. Due to faculty availability constraints, `Reviewer 2` ratings and final adjudication remain pending. A preliminary single-reviewer benchmark has been executed and documented in [`results/validation/phase5_preliminary_evaluation_report.md`](file:///c:/Users/rajes/OneDrive/Desktop/PBL/academic-project-novelty-detection/results/validation/phase5_preliminary_evaluation_report.md). This preliminary evaluation confirms the hybrid model achieves continuous MAE of $0.3155$ and $98.89\%$ within-one agreement on the 90 held-out pairs, while explicitly distinguishing preliminary human evaluation from completed double-review faculty validation.
+
+---  
 
 ---
 
@@ -160,10 +168,25 @@ data/annotation/
 
 ---
 
-## 5. Next Steps for Human Review Execution
+## 5. Next Steps for Final Faculty Validation
 
-1. **Workbook Distribution**: Deliver `data/annotation/faculty_evaluation_sample_60.xlsx` along with [`docs/FACULTY_ANNOTATION_GUIDELINES.md`](file:///c:/Users/rajes/OneDrive/Desktop/PBL/academic-project-novelty-detection/docs/FACULTY_ANNOTATION_GUIDELINES.md) to Reviewer 1 and Reviewer 2.
-2. **Independent Scoring**: Each reviewer independently populates their respective rating column (`reviewer_1_rating` and `reviewer_2_rating`).
-3. **Adjudication Meeting**: Reviewers convene with the Lead Adjudicator to review minor ($|R_1 - R_2| = 1$) and major ($|R_1 - R_2| \ge 2$) disagreements and record consensus scores in `adjudicated_rating`.
-4. **Evaluation Execution**: Run evaluation scripts to compute inter-rater agreement ($\kappa_w$) and benchmark TF-IDF, Semantic, and Hybrid models against the human ground truth.
-5. **Phase 5 Final Report**: Document validated findings, model error analysis, and empirical novelty thresholds in the Phase 5 final report.
+1. **Workbook Distribution to Reviewer 2**: Deliver `data/annotation/faculty_evaluation_sample_120.xlsx` along with [`docs/FACULTY_ANNOTATION_GUIDELINES.md`](file:///c:/Users/rajes/OneDrive/Desktop/PBL/academic-project-novelty-detection/docs/FACULTY_ANNOTATION_GUIDELINES.md) to Reviewer 2.
+2. **Independent Scoring**: Reviewer 2 populates `reviewer_2_rating` and `reviewer_2_comments` without access to Reviewer 1 ratings.
+3. **Inter-Rater Reliability (IRR)**: Calculate Quadratic Weighted Cohen's Kappa ($\kappa_w$) between Reviewer 1 and Reviewer 2 on the 90 held-out pairs.
+4. **Adjudication Meeting**: Reviewers convene with the Lead Adjudicator to review disagreements and record consensus scores in `adjudicated_rating` and `adjudication_comments`.
+5. **Final Validated Benchmarking**: Re-run the evaluation pipeline against `adjudicated_rating` to produce the final validated scientific report.
+
+---
+
+## 6. Phase 5.3 Preliminary Human Evaluation Status
+
+As of November 13, 2026, Reviewer 1 ratings have been collected across all 120 pairs. A preliminary benchmark was conducted and documented in:
+- Report: [`results/validation/phase5_preliminary_evaluation_report.md`](file:///c:/Users/rajes/OneDrive/Desktop/PBL/academic-project-novelty-detection/results/validation/phase5_preliminary_evaluation_report.md)
+- Dataset: `results/validation/phase5_preliminary_human_evaluation.csv`
+- Model Comparison: `results/validation/phase5_preliminary_model_comparison.csv`
+- Machine-Readable Summary: `results/validation/phase5_preliminary_evaluation_summary.json`
+- Visualizations: `results/validation/figures/`
+
+> [!WARNING]
+> **Interim Evaluation Boundary**:  
+> All Phase 5.3 results represent a **preliminary human evaluation based on one reviewer**. They do not constitute completed faculty validation or proof of generalizability. Inter-reviewer reliability will be established once Reviewer 2 completes ratings.

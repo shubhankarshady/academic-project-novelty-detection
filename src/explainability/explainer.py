@@ -199,8 +199,10 @@ class NoveltyExplainer:
 
         # Validate scoring mode
         mode_clean = str(scoring_mode).strip().lower()
-        if mode_clean not in {"tfidf", "hybrid"}:
-            raise ValueError(f"Unsupported scoring_mode: '{scoring_mode}'. Must be 'tfidf' or 'hybrid'.")
+        if mode_clean in {"tuned", "tuned_hybrid"}:
+            mode_clean = "tuned_hybrid"
+        elif mode_clean not in {"tfidf", "hybrid"}:
+            raise ValueError(f"Unsupported scoring_mode: '{scoring_mode}'. Must be 'tfidf', 'hybrid', or 'tuned_hybrid'.")
         self.scoring_mode = mode_clean
 
         # Validate hybrid alpha
@@ -213,8 +215,8 @@ class NoveltyExplainer:
         self.hybrid_alpha = alpha_val
 
         self.dense_extractor = dense_extractor
-        if self.scoring_mode == "hybrid" and self.dense_extractor is None:
-            raise ValueError("SectionDenseEmbeddingExtractor (dense_extractor) is required when scoring_mode is 'hybrid'.")
+        if self.scoring_mode in {"hybrid", "tuned_hybrid"} and self.dense_extractor is None:
+            raise ValueError("SectionDenseEmbeddingExtractor (dense_extractor) is required when scoring_mode is 'hybrid' or 'tuned_hybrid'.")
 
         # Extract model coefficients and intercept
         self._extract_model_parameters(model)
@@ -324,6 +326,8 @@ class NoveltyExplainer:
             historical_dict = dict(historical_row)
 
         mode = (scoring_mode or self.scoring_mode).lower()
+        if mode in {"tuned", "tuned_hybrid"}:
+            mode = "tuned_hybrid"
         alpha = float(hybrid_alpha if hybrid_alpha is not None else self.hybrid_alpha)
 
         section_scores = {}
@@ -374,7 +378,7 @@ class NoveltyExplainer:
             sim_hybrid_val = float(alpha * sim_lexical + (1.0 - alpha) * sim_semantic)
             sim_hybrid_val = float(np.clip(sim_hybrid_val, 0.0, 1.0))
 
-            effective_sim = sim_hybrid_val if mode == "hybrid" else sim_lexical
+            effective_sim = sim_hybrid_val if mode in {"hybrid", "tuned_hybrid"} else sim_lexical
 
             weight = float(self.coef_[idx])
             signed_contrib = effective_sim * weight
@@ -433,7 +437,7 @@ class NoveltyExplainer:
             "historical_project_title": str(historical_dict.get("project_title", "N/A")),
             "historical_domain": str(historical_dict.get("domain", "N/A")),
             "scoring_mode": mode,
-            "hybrid_alpha": round(alpha, 4) if mode == "hybrid" else 1.0,
+            "hybrid_alpha": round(alpha, 4) if mode in {"hybrid", "tuned_hybrid"} else 1.0,
             "predicted_similarity": round(clipped_prediction, 4),
             "raw_similarity_prediction": round(raw_prediction, 4),
             "clipped_prediction": round(clipped_prediction, 4),
@@ -483,14 +487,16 @@ class NoveltyExplainer:
         Supports both TF-IDF production mode and configurable hybrid scoring mode.
         """
         mode = (scoring_mode or self.scoring_mode).lower()
-        if mode not in {"tfidf", "hybrid"}:
-            raise ValueError(f"Unsupported scoring_mode: '{mode}'. Must be 'tfidf' or 'hybrid'.")
+        if mode in {"tuned", "tuned_hybrid"}:
+            mode = "tuned_hybrid"
+        elif mode not in {"tfidf", "hybrid"}:
+            raise ValueError(f"Unsupported scoring_mode: '{mode}'. Must be 'tfidf', 'hybrid', or 'tuned_hybrid'.")
 
         alpha = float(hybrid_alpha if hybrid_alpha is not None else self.hybrid_alpha)
         if not (0.0 <= alpha <= 1.0):
             raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {alpha}")
 
-        if mode == "hybrid" and self.dense_extractor is None:
+        if mode in {"hybrid", "tuned_hybrid"} and self.dense_extractor is None:
             raise RuntimeError(
                 "Hybrid scoring mode requested, but no SectionDenseEmbeddingExtractor is loaded. "
                 "Ensure dense model artifact is initialized."
@@ -499,9 +505,9 @@ class NoveltyExplainer:
         # 1. Compute lexical candidate similarities across all corpus projects
         sim_df = self.tfidf_extractor.compute_candidate_similarity(candidate_dict)
 
-        # 2. If hybrid mode, compute semantic similarities and convex combination
+        # 2. If hybrid or tuned_hybrid mode, compute semantic similarities and convex combination
         cand_dense_embeddings: Optional[Dict[str, Optional[np.ndarray]]] = None
-        if mode == "hybrid":
+        if mode in {"hybrid", "tuned_hybrid"}:
             self.dense_extractor._lazy_load_model()
             cand_dense_embeddings = {}
             for sec_name, col in self.section_cols.items():
@@ -593,19 +599,29 @@ class NoveltyExplainer:
             )
             match_explanations.append(exp)
 
-        formula_str = (
-            f"hybrid_similarity = {alpha:.2f} * tfidf_similarity + {1.0 - alpha:.2f} * semantic_similarity; "
-            "predicted_similarity = sum(w_i * hybrid_similarity_i) + intercept"
-            if mode == "hybrid"
-            else "predicted_similarity = sum(w_i * tfidf_similarity_i) + intercept"
-        )
+        if mode == "tuned_hybrid":
+            formula_str = (
+                f"tuned_hybrid_similarity = {alpha:.2f} * tfidf_similarity + {1.0 - alpha:.2f} * semantic_similarity; "
+                "predicted_similarity = sum(w_i * hybrid_similarity_i) + intercept"
+            )
+            model_ver_str = "phase5_tuned_hybrid_v1.0"
+        elif mode == "hybrid":
+            formula_str = (
+                f"hybrid_similarity = {alpha:.2f} * tfidf_similarity + {1.0 - alpha:.2f} * semantic_similarity; "
+                "predicted_similarity = sum(w_i * hybrid_similarity_i) + intercept"
+            )
+            model_ver_str = "1.0-hybrid"
+        else:
+            formula_str = "predicted_similarity = sum(w_i * tfidf_similarity_i) + intercept"
+            model_ver_str = "1.0-tfidf"
 
         return {
             "candidate_proposal_title": candidate_dict.get("project_title", "N/A"),
             "candidate_project_id": candidate_dict.get("project_id", "NEW_PROPOSAL"),
             "scoring_mode": mode,
-            "hybrid_alpha": round(alpha, 4) if mode == "hybrid" else 1.0,
+            "hybrid_alpha": round(alpha, 4) if mode in {"hybrid", "tuned_hybrid"} else 1.0,
             "scoring_formula": formula_str,
+            "model_version": model_ver_str,
             "corpus_size_evaluated": len(eligible_df),
             "max_similarity_score": round(max_sim, 4),
             "overall_novelty_score_pct": round(overall_novelty_pct, 2),

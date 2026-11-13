@@ -24,6 +24,7 @@ export function EvaluatePage({
 }) {
   const [activeSubTab, setActiveSubTab] = useState('input'); // 'input' | 'report'
   const [formData, setFormData] = useState(INITIAL_FORM);
+  const [scoringMode, setScoringMode] = useState('tfidf'); // 'tfidf' | 'hybrid' | 'tuned_hybrid'
   const [scoredFormData, setScoredFormData] = useState(null); // snapshot of form when scored
   const [evaluationReport, setEvaluationReport] = useState(null);
   const [isDirtyAfterScoring, setIsDirtyAfterScoring] = useState(false);
@@ -73,12 +74,22 @@ export function EvaluatePage({
     }
   };
 
+  const handleModeChange = (newMode) => {
+    setScoringMode(newMode);
+    if (evaluationReport) {
+      setIsDirtyAfterScoring(true);
+      setSaveSuccess(null);
+    }
+  };
+
   // Evaluate candidate proposal via POST /api/score (does NOT save)
-  const handleScoreProposal = async () => {
+  const handleScoreProposal = async (overrideMode = null) => {
     setEvalLoading(true);
     setEvalError(null);
     setSaveError(null);
     setSaveSuccess(null);
+
+    const activeMode = overrideMode || scoringMode;
 
     // Payload strips helper flags
     const payload = {
@@ -94,7 +105,7 @@ export function EvaluatePage({
     };
 
     try {
-      const report = await scoreProposal(payload);
+      const report = await scoreProposal(payload, activeMode);
       setEvaluationReport(report);
       setScoredFormData({ ...payload });
       setIsDirtyAfterScoring(false);
@@ -180,6 +191,8 @@ export function EvaluatePage({
       {activeSubTab === 'input' && (
         <ProposalForm
           formData={formData}
+          scoringMode={scoringMode}
+          onModeChange={handleModeChange}
           onChange={handleFieldChange}
           onReset={handleReset}
           onLoadSample={handleLoadSample}

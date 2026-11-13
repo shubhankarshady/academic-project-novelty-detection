@@ -56,13 +56,17 @@ export function SimilarProjectCard({ match, rank, isTopMatch = false }) {
               <span className="text-xs text-slate-500 font-medium">
                 {match.historical_domain || 'General'}
               </span>
-              {match.scoring_mode === 'hybrid' ? (
+              {match.scoring_mode === 'tuned_hybrid' ? (
+                <Badge variant="indigo" size="sm" dot>
+                  Tuned Hybrid (α={match.hybrid_alpha ?? 0.60})
+                </Badge>
+              ) : match.scoring_mode === 'hybrid' ? (
                 <Badge variant="purple" size="sm">
-                  Hybrid (α={match.hybrid_alpha ?? 0.5})
+                  Hybrid Baseline (α={match.hybrid_alpha ?? 0.50})
                 </Badge>
               ) : (
                 <Badge variant="neutral" size="sm">
-                  TF-IDF Lexical
+                  TF-IDF Baseline
                 </Badge>
               )}
               {isTopMatch && (

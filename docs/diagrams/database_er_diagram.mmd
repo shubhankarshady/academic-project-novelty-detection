@@ -1,0 +1,38 @@
+```mermaid
+erDiagram
+    PROPOSALS {
+        INTEGER id PK "Auto-incrementing primary key"
+        TEXT project_id UK "Unique submission ID (e.g. SUB-0001)"
+        TEXT project_title "Full academic project title"
+        TEXT normalized_title "Cleaned lowercased title for deduplication"
+        TEXT domain "Academic domain / department"
+        TEXT abstract "Project abstract summary"
+        TEXT problem_statement "Problem motivation"
+        TEXT objectives "Specific project objectives"
+        TEXT proposed_methodology "Proposed methodology"
+        TEXT dataset "Dataset and benchmark resources"
+        TEXT algorithm_model "Algorithms and architectures"
+        TEXT technology_tools "Technologies and libraries"
+        REAL max_similarity_score "Maximum predicted historical similarity [0-4]"
+        REAL raw_similarity_score "Unclipped similarity score prediction"
+        REAL novelty_score_pct "Novelty percentage (1 - max_sim/4) * 100%"
+        TEXT novelty_assessment_tier "Categorical novelty tier"
+        TEXT top_match_project_id "ID of top matching corpus project (e.g. SYN-0157)"
+        TEXT top_match_title "Title of closest reference match"
+        TEXT content_hash UK "SHA-256 fingerprint of normalized 8 sections"
+        TIMESTAMP created_at "Submission timestamp (UTC)"
+        TIMESTAMP updated_at "Record update timestamp (UTC)"
+    }
+
+    EVALUATION_REPORTS {
+        INTEGER id PK "Auto-incrementing primary key"
+        INTEGER proposal_id FK "Foreign key referencing proposals.id"
+        TEXT project_id "Project ID redundancy for audit queries"
+        TEXT scoring_mode "Model used ('tfidf', 'hybrid', 'tuned_hybrid')"
+        REAL hybrid_alpha "Effective alpha parameter used"
+        TEXT report_json "Complete serialized JSON XAI evaluation payload"
+        TIMESTAMP created_at "Report generation timestamp (UTC)"
+    }
+
+    PROPOSALS ||--|| EVALUATION_REPORTS : "has exactly one"
+```

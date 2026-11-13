@@ -7,6 +7,7 @@ and configurable scoring modes (production TF-IDF vs experimental hybrid).
 from typing import Dict, List, Any, Optional, Union
 from pathlib import Path
 import os
+import json
 import joblib
 
 from src.explainability.explainer import NoveltyExplainer
@@ -16,15 +17,17 @@ DEFAULT_TFIDF_PATH = ROOT_DIR / "models" / "section_tfidf_extractor.joblib"
 DEFAULT_RIDGE_PATH = ROOT_DIR / "models" / "ridge_fusion_model.joblib"
 DEFAULT_DENSE_PATH = ROOT_DIR / "models" / "section_dense_extractor.joblib"
 DEFAULT_CANDIDATE_PATH = ROOT_DIR / "models" / "candidate_constrained_fusion_model.joblib"
+DEFAULT_TUNED_CONFIG_PATH = ROOT_DIR / "models" / "phase5_tuned_hybrid_config.json"
 
 
 class NoveltyService:
     """
     Singleton service that loads trained ML/XAI artifacts once at startup
     and exposes high-level evaluation methods.
-    Supports two scoring modes:
+    Supports three scoring modes:
       1. 'tfidf': Existing production TF-IDF Ridge fusion model (default).
-      2. 'hybrid': Experimental lexical-semantic fusion model with configurable alpha.
+      2. 'hybrid': Experimental lexical-semantic fusion model with configurable alpha (default: 0.50).
+      3. 'tuned_hybrid': Tuned lexical-semantic model with calibrated alpha 0.60 and constrained weights.
     """
 
     def __init__(
@@ -33,10 +36,27 @@ class NoveltyService:
         ridge_path: Optional[Union[str, Path]] = None,
         dense_path: Optional[Union[str, Path]] = None,
         candidate_path: Optional[Union[str, Path]] = None,
+        tuned_config_path: Optional[Union[str, Path]] = None,
         scoring_mode: Optional[str] = None,
         hybrid_alpha: Optional[float] = None,
         explainer: Optional[NoveltyExplainer] = None
     ):
+        self.tuned_config_path = Path(tuned_config_path) if tuned_config_path is not None else DEFAULT_TUNED_CONFIG_PATH
+        self.tuned_config = None
+        if self.tuned_config_path.exists():
+            try:
+                with open(self.tuned_config_path, "r", encoding="utf-8") as f:
+                    self.tuned_config = json.load(f)
+            except Exception:
+                self.tuned_config = None
+
+        if self.tuned_config and "tuned_hyperparameters" in self.tuned_config:
+            self.tuned_alpha = float(self.tuned_config["tuned_hyperparameters"].get("alpha", 0.60))
+            self.tuned_version = self.tuned_config.get("model_version", "phase5_tuned_hybrid_v1.0")
+        else:
+            self.tuned_alpha = 0.60
+            self.tuned_version = "phase5_tuned_hybrid_v1.0"
+
         if explainer is not None:
             self.explainer = explainer
             self.scoring_mode = getattr(explainer, "scoring_mode", "tfidf")
@@ -44,6 +64,7 @@ class NoveltyService:
             self.reference_corpus_size = len(explainer.projects_df)
             self._tfidf_explainer = explainer
             self._hybrid_explainer = None
+            self._tuned_explainer = None
             self.dense_extractor = getattr(explainer, "dense_extractor", None)
             return
 
@@ -56,8 +77,10 @@ class NoveltyService:
         env_mode = os.environ.get("NOVELTY_SCORING_MODE", "tfidf")
         mode_raw = scoring_mode if scoring_mode is not None else env_mode
         mode_clean = str(mode_raw).strip().lower()
-        if mode_clean not in {"tfidf", "hybrid"}:
-            raise ValueError(f"Invalid scoring mode: '{mode_raw}'. Must be 'tfidf' or 'hybrid'.")
+        if mode_clean in {"tuned", "tuned_hybrid"}:
+            mode_clean = "tuned_hybrid"
+        elif mode_clean not in {"tfidf", "hybrid"}:
+            raise ValueError(f"Invalid scoring mode: '{mode_raw}'. Must be 'tfidf', 'hybrid', or 'tuned_hybrid'.")
         self.scoring_mode = mode_clean
 
         # 2. Resolve hybrid alpha (default: 0.50)
@@ -85,6 +108,7 @@ class NoveltyService:
         self.dense_extractor = None
         self.candidate_model = None
         self._hybrid_explainer = None
+        self._tuned_explainer = None
 
         # 4. Initialize production TF-IDF explainer
         self._tfidf_explainer = NoveltyExplainer(
@@ -94,10 +118,13 @@ class NoveltyService:
             hybrid_alpha=self.hybrid_alpha
         )
 
-        # 5. If hybrid mode configured at startup, eagerly initialize it
-        if self.scoring_mode == "hybrid":
+        # 5. If hybrid or tuned mode configured at startup, eagerly initialize it
+        if self.scoring_mode == "tuned_hybrid":
             self._ensure_hybrid_initialized()
-            self.explainer = self._hybrid_explainer
+            self.explainer = self.get_explainer_for_mode("tuned_hybrid", alpha=self.tuned_alpha)
+        elif self.scoring_mode == "hybrid":
+            self._ensure_hybrid_initialized()
+            self.explainer = self.get_explainer_for_mode("hybrid", alpha=self.hybrid_alpha)
         else:
             self.explainer = self._tfidf_explainer
 
@@ -136,14 +163,32 @@ class NoveltyService:
     ) -> NoveltyExplainer:
         """Return the appropriate explainer for the requested mode and alpha."""
         mode_clean = str(mode).strip().lower()
-        if mode_clean not in {"tfidf", "hybrid"}:
-            raise ValueError(f"Invalid scoring mode: '{mode}'. Must be 'tfidf' or 'hybrid'.")
+        if mode_clean in {"tuned", "tuned_hybrid"}:
+            mode_clean = "tuned_hybrid"
+        elif mode_clean not in {"tfidf", "hybrid"}:
+            raise ValueError(f"Invalid scoring mode: '{mode}'. Must be 'tfidf', 'hybrid', or 'tuned_hybrid'.")
 
         if mode_clean == "tfidf":
             return self._tfidf_explainer
 
-        # Hybrid mode requested
+        # Hybrid or Tuned Hybrid mode requested
         self._ensure_hybrid_initialized()
+        if mode_clean == "tuned_hybrid":
+            effective_alpha = float(alpha if alpha is not None else self.tuned_alpha)
+            if not (0.0 <= effective_alpha <= 1.0):
+                raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {effective_alpha}")
+            if self._tuned_explainer is None or self._tuned_explainer.hybrid_alpha != effective_alpha:
+                self._tuned_explainer = NoveltyExplainer(
+                    tfidf_extractor=self.tfidf_extractor,
+                    model=self.candidate_model,
+                    projects_df=self.tfidf_extractor.projects_df,
+                    dense_extractor=self.dense_extractor,
+                    scoring_mode="tuned_hybrid",
+                    hybrid_alpha=effective_alpha
+                )
+            return self._tuned_explainer
+
+        # Regular hybrid baseline mode
         effective_alpha = float(alpha if alpha is not None else self.hybrid_alpha)
         if not (0.0 <= effective_alpha <= 1.0):
             raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {effective_alpha}")
@@ -170,10 +215,24 @@ class NoveltyService:
         """
         Evaluate candidate proposal against the historical reference corpus.
         Does NOT save the proposal to the database or mutate the reference corpus.
-        Allows overriding scoring mode ('tfidf' or 'hybrid') and alpha per request.
+        Allows overriding scoring mode ('tfidf', 'hybrid', or 'tuned_hybrid') and alpha per request.
         """
-        mode = (scoring_mode or self.scoring_mode).lower()
-        alpha = float(hybrid_alpha if hybrid_alpha is not None else self.hybrid_alpha)
+        mode_raw = (scoring_mode or self.scoring_mode).lower()
+        if mode_raw in {"tuned", "tuned_hybrid"}:
+            mode = "tuned_hybrid"
+        elif mode_raw in {"tfidf", "hybrid"}:
+            mode = mode_raw
+        else:
+            raise ValueError(f"Invalid scoring mode: '{scoring_mode}'. Must be 'tfidf', 'hybrid', or 'tuned_hybrid'.")
+
+        if hybrid_alpha is not None:
+            alpha = float(hybrid_alpha)
+        elif mode == "tuned_hybrid":
+            alpha = self.tuned_alpha
+        elif mode == "hybrid":
+            alpha = self.hybrid_alpha
+        else:
+            alpha = 1.0
 
         active_explainer = self.get_explainer_for_mode(mode=mode, alpha=alpha)
 
@@ -189,6 +248,10 @@ class NoveltyService:
             scoring_mode=mode,
             hybrid_alpha=alpha
         )
+
+        # Ensure model_version is populated
+        if "model_version" not in report or not report["model_version"]:
+            report["model_version"] = self.tuned_version if mode == "tuned_hybrid" else ("1.0-hybrid" if mode == "hybrid" else "1.0-tfidf")
 
         # Enrich each top match with section difference summary
         for match in report.get("top_matches", []):
@@ -211,6 +274,7 @@ def get_novelty_service(
     ridge_path: Optional[Union[str, Path]] = None,
     dense_path: Optional[Union[str, Path]] = None,
     candidate_path: Optional[Union[str, Path]] = None,
+    tuned_config_path: Optional[Union[str, Path]] = None,
     scoring_mode: Optional[str] = None,
     hybrid_alpha: Optional[float] = None,
     force_reload: bool = False
@@ -223,6 +287,7 @@ def get_novelty_service(
             ridge_path=ridge_path,
             dense_path=dense_path,
             candidate_path=candidate_path,
+            tuned_config_path=tuned_config_path,
             scoring_mode=scoring_mode,
             hybrid_alpha=hybrid_alpha
         )

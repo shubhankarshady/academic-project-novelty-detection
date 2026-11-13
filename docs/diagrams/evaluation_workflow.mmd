@@ -1,0 +1,48 @@
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Student / Faculty Evaluator
+    participant UI as React Dashboard
+    participant API as FastAPI Backend (/api/score)
+    participant Srv as NoveltyService
+    participant XAI as NoveltyExplainer
+    participant TFIDF as TF-IDF Extractor
+    participant Dense as Dense Extractor
+    participant DB as SQLite Storage
+
+    User->>UI: Input 8 text sections & select scoring mode (e.g. Tuned Hybrid)
+    User->>UI: Clicks "Evaluate Novelty"
+    UI->>API: POST /api/score?mode=tuned_hybrid
+    API->>Srv: score_proposal(candidate_dict, mode="tuned_hybrid")
+    Srv->>Srv: Resolve alpha=0.60 from phase5_tuned_hybrid_config.json
+    Srv->>XAI: explain_proposal(candidate, top_k=5, alpha=0.60)
+
+    par Lexical Section Similarities
+        XAI->>TFIDF: compute_candidate_similarity(candidate)
+        TFIDF-->>XAI: 8 section cosine similarities against 600 corpus projects
+    and Semantic Section Similarities
+        XAI->>Dense: encode candidate sections & compute dot product
+        Dense-->>XAI: 8 section semantic cosine similarities against 600 corpus projects
+    end
+
+    XAI->>XAI: Convex Combination: s_i = 0.60 * s_i^lex + 0.40 * s_i^sem
+    XAI->>XAI: Predicted Similarity = sum(w_i * s_i) with Candidate Weights
+    XAI->>XAI: Check self-exclusion (exclude matching project_id if provided)
+    XAI->>XAI: Deterministic Sort: top 5 matches
+    XAI->>XAI: Overall Novelty % = (1 - max_similarity / 4.0) * 100%
+    XAI->>XAI: Extract shared n-grams & keyword context snippets
+
+    XAI-->>Srv: Complete XAI Evaluation Report
+    Srv-->>API: Enriched Response with Section Difference Summaries
+    API-->>UI: HTTP 200 OK (JSON payload)
+    UI->>User: Renders Radial Gauge, Section Overlap Charts, Top Matches, Model Badges
+
+    opt Save Proposal
+        User->>UI: Clicks "Save Proposal"
+        UI->>API: POST /api/save (candidate payload + verified report)
+        API->>DB: Verify title match, check duplicates, insert proposal & report
+        DB-->>API: Assigned project_id (e.g. SUB-0002)
+        API-->>UI: HTTP 201 Created
+        UI->>User: Confirmation pill & link to view in submission history
+    end
+```

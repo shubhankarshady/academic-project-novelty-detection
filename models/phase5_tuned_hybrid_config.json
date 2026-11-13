@@ -1,0 +1,66 @@
+{
+  "model_name": "Phase 5 Tuned Hybrid Fusion Model",
+  "model_version": "phase5_tuned_hybrid_v1.0",
+  "experiment_date": "2026-11-13",
+  "status": "FROZEN_FOR_HELD_OUT_EVALUATION",
+  "calibration_cohort": {
+    "source_dataset": "data/annotation/faculty_evaluation_sample_120.xlsx",
+    "subset": "DEV_CALIBRATION",
+    "sample_size": 30,
+    "reviewer": "Reviewer 1 (Single Preliminary Faculty Reviewer)",
+    "evaluation_methodology": "5-Fold Cross-Validation within Calibration Split"
+  },
+  "tuned_hyperparameters": {
+    "alpha": 0.60,
+    "baseline_alpha": 0.50,
+    "alpha_search_space": [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+    "selection_rationale": "Alpha = 0.60 achieved the minimum 5-fold cross-validation RMSE (0.3921), near-zero mean bias error (-0.0356), higher macro F1 (50.63% vs 47.96%), and higher exact agreement (80.0% vs 76.7%) compared to the 0.50 baseline, while avoiding the negative underprediction drift observed at alpha >= 0.70."
+  },
+  "section_weights": {
+    "weights_modified": false,
+    "weights_status": "FROZEN_CANDIDATE_CONSTRAINED_WEIGHTS",
+    "modification_decision": "Retained existing candidate constrained weights without modification. Cross-validation demonstrated that fitting 8 independent weights on N=30 observations creates severe parameter estimation variance and risks overfitting. Preserving the structurally robust candidate weights ensures monotonic bounded similarity in [0.0, 4.0] and stability across all 600 reference projects.",
+    "active_weights": {
+      "title_similarity": 0.9535142940438291,
+      "abstract_similarity": 0.0,
+      "problem_similarity": 0.0,
+      "objectives_similarity": 0.0,
+      "methodology_similarity": 0.37757134293394357,
+      "dataset_similarity": 1.9528858208875572,
+      "algorithm_similarity": 0.0,
+      "technology_similarity": 0.7160285421346699
+    },
+    "normalized_influence_pct": {
+      "title_similarity": 23.837857351095728,
+      "abstract_similarity": 0.0,
+      "problem_similarity": 0.0,
+      "objectives_similarity": 0.0,
+      "methodology_similarity": 9.43928357334859,
+      "dataset_similarity": 48.82214552218893,
+      "algorithm_similarity": 0.0,
+      "technology_similarity": 17.90071355336675
+    },
+    "sum_of_weights": 4.0,
+    "intercept": 0.0
+  },
+  "calibration_performance_summary": {
+    "cv_mae": 0.3272,
+    "cv_rmse": 0.3921,
+    "cv_mbe": -0.0356,
+    "cv_spearman": 0.8398,
+    "cv_exact_agreement_pct": 80.0,
+    "cv_within1_agreement_pct": 100.0,
+    "cv_macro_f1_pct": 50.63,
+    "full_dev_mae": 0.3272,
+    "full_dev_rmse": 0.4022,
+    "full_dev_mbe": -0.0356,
+    "full_dev_exact_agreement_pct": 80.0,
+    "full_dev_within1_agreement_pct": 100.0
+  },
+  "scientific_safeguards": {
+    "held_out_leakage_prevented": true,
+    "held_out_pair_count": 90,
+    "held_out_status": "Strictly held-out; zero parameters or weights were fitted or tuned using held-out annotations."
+  }
+}
+

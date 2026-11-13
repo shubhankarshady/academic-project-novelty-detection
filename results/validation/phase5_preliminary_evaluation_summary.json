@@ -1,0 +1,600 @@
+{
+  "status": "PRELIMINARY_SINGLE_REVIEWER_EVALUATION",
+  "date": "2026-11-13",
+  "sample_size": {
+    "total_pairs": 120,
+    "dev_calibration_pairs": 30,
+    "held_out_evaluation_pairs": 90
+  },
+  "validation_checks": {
+    "all_120_present": true,
+    "ratings_valid_integers_0_to_4": true,
+    "no_duplicates": true,
+    "dual_batch_balance_60_each": true,
+    "reviewer_2_and_adjudication_unfilled": true,
+    "subsets_preserved_30_90": true
+  },
+  "rating_distributions": {
+    "overall_distribution": {
+      "0": 24,
+      "1": 11,
+      "2": 9,
+      "3": 69,
+      "4": 7
+    },
+    "held_out_distribution": {
+      "0": 19,
+      "1": 7,
+      "2": 5,
+      "3": 54,
+      "4": 5
+    },
+    "dev_calibration_distribution": {
+      "0": 5,
+      "1": 4,
+      "2": 4,
+      "3": 15,
+      "4": 2
+    }
+  },
+  "held_out_metrics": [
+    {
+      "model": "TF-IDF Ridge Model",
+      "n_samples": 90,
+      "MAE": 0.4713,
+      "RMSE": 0.6379,
+      "Mean_Bias_Error": -0.413,
+      "Pearson_r": 0.9292,
+      "Pearson_p_value": 8.315711942583725e-40,
+      "Spearman_rho": 0.7716,
+      "Spearman_p_value": 5.605836681809698e-19,
+      "Exact_Agreement_Pct": 83.33,
+      "Within_1_Agreement_Pct": 97.78,
+      "Model_Reviewer_QWK": 0.9186,
+      "Model_Reviewer_Linear_Kappa": 0.8486,
+      "Macro_F1_Pct": 50.62,
+      "Weighted_F1_Pct": 77.86,
+      "confusion_matrix": [
+        [
+          19,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          7,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          2,
+          51,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          4,
+          0
+        ]
+      ],
+      "per_class": {
+        "class_0": {
+          "support": 19,
+          "predicted_count": 27,
+          "precision": 70.37,
+          "recall": 100.0,
+          "f1": 82.61
+        },
+        "class_1": {
+          "support": 7,
+          "predicted_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "class_2": {
+          "support": 5,
+          "predicted_count": 8,
+          "precision": 62.5,
+          "recall": 100.0,
+          "f1": 76.92
+        },
+        "class_3": {
+          "support": 54,
+          "predicted_count": 55,
+          "precision": 92.73,
+          "recall": 94.44,
+          "f1": 93.58
+        },
+        "class_4": {
+          "support": 5,
+          "predicted_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    },
+    {
+      "model": "Semantic Model (all-MiniLM-L6-v2)",
+      "n_samples": 90,
+      "MAE": 0.4563,
+      "RMSE": 0.5869,
+      "Mean_Bias_Error": 0.3362,
+      "Pearson_r": 0.938,
+      "Pearson_p_value": 2.881209645284098e-42,
+      "Spearman_rho": 0.8299,
+      "Spearman_p_value": 5.1245429781371106e-24,
+      "Exact_Agreement_Pct": 65.56,
+      "Within_1_Agreement_Pct": 98.89,
+      "Model_Reviewer_QWK": 0.8644,
+      "Model_Reviewer_Linear_Kappa": 0.7002,
+      "Macro_F1_Pct": 40.0,
+      "Weighted_F1_Pct": 61.99,
+      "confusion_matrix": [
+        [
+          1,
+          17,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          6,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          4,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          49,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          3,
+          2
+        ]
+      ],
+      "per_class": {
+        "class_0": {
+          "support": 19,
+          "predicted_count": 2,
+          "precision": 50.0,
+          "recall": 5.26,
+          "f1": 9.52
+        },
+        "class_1": {
+          "support": 7,
+          "predicted_count": 23,
+          "precision": 26.09,
+          "recall": 85.71,
+          "f1": 40.0
+        },
+        "class_2": {
+          "support": 5,
+          "predicted_count": 3,
+          "precision": 33.33,
+          "recall": 20.0,
+          "f1": 25.0
+        },
+        "class_3": {
+          "support": 54,
+          "predicted_count": 56,
+          "precision": 87.5,
+          "recall": 90.74,
+          "f1": 89.09
+        },
+        "class_4": {
+          "support": 5,
+          "predicted_count": 6,
+          "precision": 33.33,
+          "recall": 40.0,
+          "f1": 36.36
+        }
+      }
+    },
+    {
+      "model": "Hybrid Model (alpha=0.50)",
+      "n_samples": 90,
+      "MAE": 0.3155,
+      "RMSE": 0.4421,
+      "Mean_Bias_Error": 0.0164,
+      "Pearson_r": 0.9462,
+      "Pearson_p_value": 6.687619376824955e-45,
+      "Spearman_rho": 0.8502,
+      "Spearman_p_value": 3.041120776173467e-26,
+      "Exact_Agreement_Pct": 74.44,
+      "Within_1_Agreement_Pct": 98.89,
+      "Model_Reviewer_QWK": 0.9028,
+      "Model_Reviewer_Linear_Kappa": 0.7823,
+      "Macro_F1_Pct": 57.35,
+      "Weighted_F1_Pct": 74.55,
+      "confusion_matrix": [
+        [
+          7,
+          12,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          5,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          50,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          4,
+          1
+        ]
+      ],
+      "per_class": {
+        "class_0": {
+          "support": 19,
+          "predicted_count": 9,
+          "precision": 77.78,
+          "recall": 36.84,
+          "f1": 50.0
+        },
+        "class_1": {
+          "support": 7,
+          "predicted_count": 18,
+          "precision": 27.78,
+          "recall": 71.43,
+          "f1": 40.0
+        },
+        "class_2": {
+          "support": 5,
+          "predicted_count": 5,
+          "precision": 80.0,
+          "recall": 80.0,
+          "f1": 80.0
+        },
+        "class_3": {
+          "support": 54,
+          "predicted_count": 55,
+          "precision": 90.91,
+          "recall": 92.59,
+          "f1": 91.74
+        },
+        "class_4": {
+          "support": 5,
+          "predicted_count": 3,
+          "precision": 33.33,
+          "recall": 20.0,
+          "f1": 25.0
+        }
+      }
+    }
+  ],
+  "dev_calibration_metrics": [
+    {
+      "model": "TF-IDF Ridge Model (Dev)",
+      "n_samples": 30,
+      "MAE": 0.5024,
+      "RMSE": 0.6101,
+      "Mean_Bias_Error": -0.3646,
+      "Pearson_r": 0.919,
+      "Pearson_p_value": 7.79352170942535e-13,
+      "Spearman_rho": 0.8147,
+      "Spearman_p_value": 4.262529005159738e-08,
+      "Exact_Agreement_Pct": 76.67,
+      "Within_1_Agreement_Pct": 100.0,
+      "Model_Reviewer_QWK": 0.9307,
+      "Model_Reviewer_Linear_Kappa": 0.8259,
+      "Macro_F1_Pct": 49.61,
+      "Weighted_F1_Pct": 68.79,
+      "confusion_matrix": [
+        [
+          5,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          4,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          3,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          15,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          2,
+          0
+        ]
+      ],
+      "per_class": {
+        "class_0": {
+          "support": 5,
+          "predicted_count": 9,
+          "precision": 55.56,
+          "recall": 100.0,
+          "f1": 71.43
+        },
+        "class_1": {
+          "support": 4,
+          "predicted_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "class_2": {
+          "support": 4,
+          "predicted_count": 3,
+          "precision": 100.0,
+          "recall": 75.0,
+          "f1": 85.71
+        },
+        "class_3": {
+          "support": 15,
+          "predicted_count": 18,
+          "precision": 83.33,
+          "recall": 100.0,
+          "f1": 90.91
+        },
+        "class_4": {
+          "support": 2,
+          "predicted_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      }
+    },
+    {
+      "model": "Semantic Model (all-MiniLM-L6-v2) (Dev)",
+      "n_samples": 30,
+      "MAE": 0.4292,
+      "RMSE": 0.5885,
+      "Mean_Bias_Error": 0.3337,
+      "Pearson_r": 0.9222,
+      "Pearson_p_value": 4.50945360925654e-13,
+      "Spearman_rho": 0.8507,
+      "Spearman_p_value": 2.628530891442884e-09,
+      "Exact_Agreement_Pct": 70.0,
+      "Within_1_Agreement_Pct": 100.0,
+      "Model_Reviewer_QWK": 0.8861,
+      "Model_Reviewer_Linear_Kappa": 0.7453,
+      "Macro_F1_Pct": 50.48,
+      "Weighted_F1_Pct": 61.75,
+      "confusion_matrix": [
+        [
+          1,
+          4,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          15,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "per_class": {
+        "class_0": {
+          "support": 5,
+          "predicted_count": 1,
+          "precision": 100.0,
+          "recall": 20.0,
+          "f1": 33.33
+        },
+        "class_1": {
+          "support": 4,
+          "predicted_count": 8,
+          "precision": 50.0,
+          "recall": 100.0,
+          "f1": 66.67
+        },
+        "class_2": {
+          "support": 4,
+          "predicted_count": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "class_3": {
+          "support": 15,
+          "predicted_count": 20,
+          "precision": 75.0,
+          "recall": 100.0,
+          "f1": 85.71
+        },
+        "class_4": {
+          "support": 2,
+          "predicted_count": 1,
+          "precision": 100.0,
+          "recall": 50.0,
+          "f1": 66.67
+        }
+      }
+    },
+    {
+      "model": "Hybrid Model (alpha=0.50) (Dev)",
+      "n_samples": 30,
+      "MAE": 0.3209,
+      "RMSE": 0.4128,
+      "Mean_Bias_Error": 0.0259,
+      "Pearson_r": 0.9445,
+      "Pearson_p_value": 4.607607403088139e-15,
+      "Spearman_rho": 0.8502,
+      "Spearman_p_value": 2.7403065617567434e-09,
+      "Exact_Agreement_Pct": 76.67,
+      "Within_1_Agreement_Pct": 100.0,
+      "Model_Reviewer_QWK": 0.9195,
+      "Model_Reviewer_Linear_Kappa": 0.8145,
+      "Macro_F1_Pct": 67.0,
+      "Weighted_F1_Pct": 76.08,
+      "confusion_matrix": [
+        [
+          2,
+          3,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          3,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          15,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "per_class": {
+        "class_0": {
+          "support": 5,
+          "predicted_count": 4,
+          "precision": 50.0,
+          "recall": 40.0,
+          "f1": 44.44
+        },
+        "class_1": {
+          "support": 4,
+          "predicted_count": 5,
+          "precision": 40.0,
+          "recall": 50.0,
+          "f1": 44.44
+        },
+        "class_2": {
+          "support": 4,
+          "predicted_count": 3,
+          "precision": 100.0,
+          "recall": 75.0,
+          "f1": 85.71
+        },
+        "class_3": {
+          "support": 15,
+          "predicted_count": 17,
+          "precision": 88.24,
+          "recall": 100.0,
+          "f1": 93.75
+        },
+        "class_4": {
+          "support": 2,
+          "predicted_count": 1,
+          "precision": 100.0,
+          "recall": 50.0,
+          "f1": 66.67
+        }
+      }
+    }
+  ],
+  "scientific_limitations": [
+    "Only one human reviewer (Reviewer 1) has completed ratings.",
+    "Independent second-reviewer ratings are pending.",
+    "Adjudicated consensus ratings are pending.",
+    "Inter-reviewer agreement (IRR) cannot yet be measured.",
+    "The 120-pair sample is a limited evaluation cohort.",
+    "Severe class skew towards Level 3 (57.5% of total sample; 60% of held-out set).",
+    "Continuous-to-discrete integer rounding introduces boundary sensitivity.",
+    "Results do not establish real-world statistical generalization to all academic projects."
+  ]
+}

@@ -1,0 +1,73 @@
+```mermaid
+flowchart LR
+    subgraph CandidateInputs["Candidate Proposal Sections (C)"]
+        C1["Title"]
+        C2["Abstract"]
+        C3["Problem Statement"]
+        C4["Objectives"]
+        C5["Methodology"]
+        C6["Dataset"]
+        C7["Algorithm"]
+        C8["Tools"]
+    end
+
+    subgraph ReferenceCorpus["Reference Corpus Project Sections (H)"]
+        H1["Title"]
+        H2["Abstract"]
+        H3["Problem Statement"]
+        H4["Objectives"]
+        H5["Methodology"]
+        H6["Dataset"]
+        H7["Algorithm"]
+        H8["Tools"]
+    end
+
+    subgraph LexicalEngine["Lexical Feature Branch (TF-IDF)"]
+        direction TB
+        TF_V["8 Section Vectorizers<br/>(Sublinear TF, N-grams 1-2)"]
+        TF_Sim["Lexical Cosines: s_i^lex in [0, 1]"]
+        TF_V --> TF_Sim
+    end
+
+    subgraph SemanticEngine["Dense Semantic Branch (Sentence Transformers)"]
+        direction TB
+        DN_M["all-MiniLM-L6-v2<br/>(384-dim normalized)"]
+        DN_Sim["Semantic Cosines: s_i^sem in [0, 1]"]
+        DN_M --> DN_Sim
+    end
+
+    CandidateInputs --> LexicalEngine
+    ReferenceCorpus --> LexicalEngine
+    CandidateInputs --> SemanticEngine
+    ReferenceCorpus --> SemanticEngine
+
+    subgraph ConvexCombination["Convex Hybrid Fusion Layer"]
+        Alpha["Weighting Parameter: alpha = 0.60<br/>(TF-IDF: 60%, Semantic: 40%)"]
+        Combine["s_i^hybrid = alpha * s_i^lex + (1 - alpha) * s_i^sem"]
+        Alpha --> Combine
+        TF_Sim --> Combine
+        DN_Sim --> Combine
+    end
+
+    subgraph SectionWeighting["Candidate Constrained Linear Head"]
+        direction TB
+        W1["w_title = 0.9535 (23.8%)"]
+        W5["w_methodology = 0.3776 (9.4%)"]
+        W6["w_dataset = 1.9529 (48.8%)"]
+        W8["w_tools = 0.7160 (17.9%)"]
+        W_zero["w_abstract = w_problem = w_objectives = w_algo = 0.0"]
+        SumWeights["sum(w_i) = 4.0, b = 0.0"]
+    end
+
+    Combine --> SectionWeighting
+
+    subgraph Outputs["Prediction & Metric Outputs"]
+        PredSim["Predicted Similarity Score:<br/>y_hat = sum(w_i * s_i^hybrid) in [0.0, 4.0]"]
+        NoveltyPct["Novelty Score Percentage:<br/>Novelty % = (1 - max(y_hat)/4.0) * 100%"]
+        Tier["Assessment Tier:<br/>High / Moderate / Low Novelty"]
+        PredSim --> NoveltyPct
+        NoveltyPct --> Tier
+    end
+
+    SectionWeighting --> PredSim
+```

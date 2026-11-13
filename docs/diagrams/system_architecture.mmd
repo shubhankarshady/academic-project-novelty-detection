@@ -1,0 +1,61 @@
+```mermaid
+flowchart TB
+    subgraph ClientLayer["Frontend Client Layer (React 19 + Tailwind CSS + Vite)"]
+        UI_Dashboard["Dashboard Overview<br/>(KPI Cards, Corpus Stats, Recent Submissions)"]
+        UI_ProposalForm["Proposal Submission Form<br/>(8 Sections, Sample Presets, Model Switcher)"]
+        UI_ModelSelector["Model Selector Segment<br/>(TF-IDF Baseline | Hybrid Baseline | Tuned Hybrid)"]
+        UI_Report["Novelty & Explainability Report<br/>(Radial Gauge, Section Charts, Top Matches)"]
+        UI_History["Submission History Audit<br/>(Paginated Table, Filter, Detail Inspection Modal)"]
+    end
+
+    subgraph APILayer["FastAPI Application Layer (REST API :8000)"]
+        API_Health["GET /api/health<br/>(Corpus & Model Status)"]
+        API_Score["POST /api/score?mode=...&alpha=...<br/>(In-Memory Proposal Evaluation)"]
+        API_Save["POST /api/save<br/>(Deduplication & SQLite Persistence)"]
+        API_List["GET /api/proposals<br/>(Audit History Listing)"]
+        API_Detail["GET /api/proposals/{id}<br/>(Proposal & Report Inspection)"]
+    end
+
+    subgraph ServiceLayer["Core Analytics & ML Engine (src/)"]
+        Service_Novelty["NoveltyService (Singleton)<br/>(Scoring Routing & Explainer Cache)"]
+        Engine_TFIDF["SectionTFIDFExtractor<br/>(8 Sublinear TF-IDF Vectorizers)"]
+        Engine_Dense["SectionDenseEmbeddingExtractor<br/>(sentence-transformers all-MiniLM-L6-v2)"]
+        Engine_XAI["NoveltyExplainer<br/>(Linear Attribution & Shared Keyword N-Grams)"]
+        Model_Ridge["Production Ridge Model<br/>(alpha=100.0, intercept=-0.0706)"]
+        Model_CandConstrained["Candidate Constrained Model<br/>(Non-negative Weights, sum=4.0, intercept=0.0)"]
+        Config_Tuned["Tuned Hybrid Configuration<br/>(phase5_tuned_hybrid_config.json: alpha=0.60)"]
+    end
+
+    subgraph StorageLayer["Data & Persistence Layer"]
+        Corpus_CSV["Historical Reference Corpus<br/>(data/synthetic_academic_projects_expanded_600.csv)"]
+        DB_SQLite["Submitted Proposals SQLite DB<br/>(data/proposals.db - proposals & evaluation_reports)"]
+        Artifacts_Models["Model Checkpoint Artifacts<br/>(models/*.joblib)"]
+    end
+
+    %% Interactions
+    UI_Dashboard --> API_Health
+    UI_Dashboard --> API_List
+    UI_ProposalForm --> UI_ModelSelector
+    UI_ProposalForm --> API_Score
+    UI_Report --> API_Save
+    UI_History --> API_List
+    UI_History --> API_Detail
+
+    API_Health --> Service_Novelty
+    API_Score --> Service_Novelty
+    API_Save --> DB_SQLite
+    API_List --> DB_SQLite
+    API_Detail --> DB_SQLite
+
+    Service_Novelty --> Config_Tuned
+    Service_Novelty --> Engine_XAI
+    Engine_XAI --> Engine_TFIDF
+    Engine_XAI --> Engine_Dense
+    Engine_XAI --> Model_Ridge
+    Engine_XAI --> Model_CandConstrained
+
+    Engine_TFIDF -.-> Corpus_CSV
+    Engine_Dense -.-> Corpus_CSV
+    Model_Ridge -.-> Artifacts_Models
+    Model_CandConstrained -.-> Artifacts_Models
+```
