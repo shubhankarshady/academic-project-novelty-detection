@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, RotateCcw, FileText, AlertCircle, CheckCircle2, BookOpen, Cpu, SlidersHorizontal, Check } from 'lucide-react';
+import { Sparkles, RotateCcw, FileText, AlertCircle, CheckCircle2, BookOpen, Cpu, Check } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Alert } from '../ui/Alert';
@@ -8,8 +8,6 @@ import { SECTION_CONFIG, SAMPLE_PROPOSALS } from '../../utils/formatters';
 
 export function ProposalForm({
   formData,
-  scoringMode = 'tfidf',
-  onModeChange,
   onChange,
   onReset,
   onLoadSample,
@@ -73,6 +71,9 @@ export function ProposalForm({
               <Badge variant="indigo" size="sm" dot>
                 8-Section Proposal Input
               </Badge>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                Two-Tier Hybrid Architecture (Top 50 Shortlist &bull; α=0.60)
+              </span>
               {formData._isSample && (
                 <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-300 border border-amber-400/30">
                   Demo Sample Preloaded
@@ -129,100 +130,6 @@ export function ProposalForm({
           </div>
         </div>
       </Card>
-
-      {/* Scoring Model Selector Card */}
-      <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
-            <h4 className="text-sm font-bold text-slate-900">Scoring Model Architecture</h4>
-            <span className="text-xs text-slate-500 hidden sm:inline">— Select evaluation engine</span>
-          </div>
-          <span className="text-[11px] text-slate-400 font-mono">
-            Active: <strong className="text-indigo-600 font-bold">{scoringMode === 'tuned_hybrid' ? 'Tuned Hybrid (α=0.60)' : scoringMode === 'hybrid' ? 'Hybrid Baseline (α=0.50)' : 'TF-IDF Baseline'}</strong>
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Mode 1: TF-IDF Baseline */}
-          <button
-            type="button"
-            onClick={() => onModeChange && onModeChange('tfidf')}
-            className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer relative ${
-              scoringMode === 'tfidf'
-                ? 'border-indigo-600 bg-indigo-50/40 ring-1 ring-indigo-500'
-                : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                TF-IDF Baseline
-              </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                Default
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 leading-snug">
-              Production Ridge regression model using 8-section lexical TF-IDF n-grams.
-            </p>
-            <div className="mt-2 text-[10px] text-slate-400 font-mono">
-              Weight: 100% Lexical
-            </div>
-          </button>
-
-          {/* Mode 2: Hybrid Baseline (alpha 0.50) */}
-          <button
-            type="button"
-            onClick={() => onModeChange && onModeChange('hybrid')}
-            className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer relative ${
-              scoringMode === 'hybrid'
-                ? 'border-purple-600 bg-purple-50/40 ring-1 ring-purple-500'
-                : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                Hybrid Baseline (α=0.50)
-              </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
-                α=0.50
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 leading-snug">
-              Lexical TF-IDF combined equally with all-MiniLM-L6-v2 dense embeddings.
-            </p>
-            <div className="mt-2 text-[10px] text-slate-400 font-mono">
-              50% TF-IDF + 50% Semantic
-            </div>
-          </button>
-
-          {/* Mode 3: Tuned Hybrid (alpha 0.60) */}
-          <button
-            type="button"
-            onClick={() => onModeChange && onModeChange('tuned_hybrid')}
-            className={`p-3.5 rounded-lg border text-left transition-all cursor-pointer relative ${
-              scoringMode === 'tuned_hybrid'
-                ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500 shadow-2xs'
-                : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                Tuned Hybrid (α=0.60)
-              </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                Calibrated
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 leading-snug">
-              Phase 5 cross-validated hybrid model with candidate constrained weights.
-            </p>
-            <div className="mt-2 text-[10px] text-emerald-700 font-mono font-medium">
-              60% TF-IDF + 40% Semantic
-            </div>
-          </button>
-        </div>
-      </div>
 
       {/* Dirty Warning if scored and edited */}
       {hasScored && isDirtyAfterScoring && (

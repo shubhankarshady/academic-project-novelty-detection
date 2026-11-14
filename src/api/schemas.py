@@ -46,8 +46,10 @@ class HealthResponse(BaseModel):
     reference_corpus_size: int = Field(..., description="Number of baseline historical projects in reference corpus")
     submitted_proposals_count: int = Field(..., description="Number of proposals stored in the submitted database")
     model_loaded: bool = Field(True, description="Whether ML and XAI models are loaded in memory")
-    active_scoring_mode: Optional[str] = Field("tfidf", description="Active scoring mode ('tfidf', 'hybrid', or 'tuned_hybrid')")
-    hybrid_alpha: Optional[float] = Field(0.50, description="Configured hybrid alpha")
+    active_scoring_mode: Optional[str] = Field("tuned_hybrid", description="Active scoring mode ('tfidf', 'hybrid', or 'tuned_hybrid')")
+    hybrid_alpha: Optional[float] = Field(0.60, description="Configured hybrid alpha")
+    retrieval_architecture: Optional[str] = Field("two_stage", description="Candidate retrieval architecture ('two_stage')")
+    two_stage_candidate_limit: Optional[int] = Field(50, description="Configured Stage 1 candidate limit for Stage 2 shortlist")
     available_scoring_modes: List[str] = Field(default_factory=lambda: ["tfidf", "hybrid", "tuned_hybrid"], description="Supported scoring modes")
     tuned_hybrid_config: Optional[Dict[str, Any]] = Field(None, description="Tuned hybrid configuration metadata if available")
     message: str = Field(..., description="Status summary distinguishing reference corpus from user submissions")
@@ -118,6 +120,10 @@ class ProposalEvaluationResponse(BaseModel):
     hybrid_alpha: Optional[float] = Field(1.0, description="Hybrid weighting factor alpha")
     scoring_formula: Optional[str] = Field(None, description="Mathematical scoring formula applied")
     model_version: Optional[str] = Field(None, description="Model version or identifier")
+    retrieval_stage: Optional[str] = Field("two_stage", description="Candidate retrieval architecture stage applied")
+    stage1_candidates_evaluated: Optional[int] = Field(None, description="Number of candidates evaluated in Stage 1 TF-IDF")
+    stage2_shortlist_size: Optional[int] = Field(None, description="Number of shortlisted candidates evaluated in Stage 2 Semantic")
+    candidate_limit: Optional[int] = Field(50, description="Configured candidate shortlist limit for Stage 2")
     corpus_size_evaluated: int
     max_similarity_score: float
     overall_novelty_score_pct: float

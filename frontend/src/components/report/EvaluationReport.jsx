@@ -91,7 +91,7 @@ export function EvaluationReport({
               </span>
               {report.scoring_mode === 'tuned_hybrid' ? (
                 <Badge variant="indigo" size="sm" dot>
-                  Tuned Hybrid (α={report.hybrid_alpha ?? 0.60})
+                  Two-Tier Hybrid (α={report.hybrid_alpha ?? 0.60})
                 </Badge>
               ) : report.scoring_mode === 'hybrid' ? (
                 <Badge variant="purple" size="sm">
@@ -105,7 +105,7 @@ export function EvaluationReport({
             </div>
             <div className="text-xs font-mono font-semibold text-slate-800">
               {report.scoring_mode === 'tuned_hybrid'
-                ? `60% TF-IDF + 40% Dense (α = ${report.hybrid_alpha ?? 0.60})`
+                ? `60% TF-IDF + 40% Dense Semantic (α = ${report.hybrid_alpha ?? 0.60})`
                 : report.scoring_mode === 'hybrid'
                 ? `50% TF-IDF + 50% Dense (α = ${report.hybrid_alpha ?? 0.50})`
                 : '100% Lexical TF-IDF'}
@@ -113,6 +113,11 @@ export function EvaluationReport({
             {report.scoring_formula && (
               <div className="text-[10px] text-slate-500 font-mono mt-1 line-clamp-1" title={report.scoring_formula}>
                 {report.scoring_formula}
+              </div>
+            )}
+            {report.retrieval_stage === 'two_stage' && (
+              <div className="text-[10px] text-indigo-700 font-medium bg-indigo-50 border border-indigo-200/60 rounded px-1.5 py-0.5 mt-1">
+                Two-Tier Retrieval: Top {report.stage2_shortlist_size || 50} candidate shortlist from {report.stage1_candidates_evaluated || 600} projects
               </div>
             )}
             <div className="text-[10px] text-slate-400 mt-0.5">

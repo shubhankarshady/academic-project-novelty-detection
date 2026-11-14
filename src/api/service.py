@@ -39,6 +39,7 @@ class NoveltyService:
         tuned_config_path: Optional[Union[str, Path]] = None,
         scoring_mode: Optional[str] = None,
         hybrid_alpha: Optional[float] = None,
+        candidate_limit: Optional[int] = None,
         explainer: Optional[NoveltyExplainer] = None
     ):
         self.tuned_config_path = Path(tuned_config_path) if tuned_config_path is not None else DEFAULT_TUNED_CONFIG_PATH
@@ -57,10 +58,20 @@ class NoveltyService:
             self.tuned_alpha = 0.60
             self.tuned_version = "phase5_tuned_hybrid_v1.0"
 
+        # Resolve Stage 1 candidate limit (default: 50)
+        env_limit = os.environ.get("TWO_STAGE_CANDIDATE_LIMIT", "50")
+        limit_raw = candidate_limit if candidate_limit is not None else env_limit
+        try:
+            limit_val = int(limit_raw)
+        except (ValueError, TypeError):
+            limit_val = 50
+        self.candidate_limit = limit_val if limit_val > 0 else 50
+
         if explainer is not None:
             self.explainer = explainer
             self.scoring_mode = getattr(explainer, "scoring_mode", "tfidf")
             self.hybrid_alpha = getattr(explainer, "hybrid_alpha", 0.50)
+            self.candidate_limit = getattr(explainer, "candidate_limit", self.candidate_limit)
             self.reference_corpus_size = len(explainer.projects_df)
             self._tfidf_explainer = explainer
             self._hybrid_explainer = None
@@ -73,8 +84,8 @@ class NoveltyService:
         self.dense_path = Path(dense_path) if dense_path is not None else DEFAULT_DENSE_PATH
         self.candidate_path = Path(candidate_path) if candidate_path is not None else DEFAULT_CANDIDATE_PATH
 
-        # 1. Resolve scoring mode (default: 'tfidf')
-        env_mode = os.environ.get("NOVELTY_SCORING_MODE", "tfidf")
+        # 1. Resolve scoring mode (default: 'tuned_hybrid')
+        env_mode = os.environ.get("NOVELTY_SCORING_MODE", "tuned_hybrid")
         mode_raw = scoring_mode if scoring_mode is not None else env_mode
         mode_clean = str(mode_raw).strip().lower()
         if mode_clean in {"tuned", "tuned_hybrid"}:
@@ -115,7 +126,8 @@ class NoveltyService:
             tfidf_extractor=self.tfidf_extractor,
             model=self.ridge_model,
             scoring_mode="tfidf",
-            hybrid_alpha=self.hybrid_alpha
+            hybrid_alpha=self.hybrid_alpha,
+            candidate_limit=self.candidate_limit
         )
 
         # 5. If hybrid or tuned mode configured at startup, eagerly initialize it
@@ -153,13 +165,15 @@ class NoveltyService:
                 projects_df=self.tfidf_extractor.projects_df,
                 dense_extractor=self.dense_extractor,
                 scoring_mode="hybrid",
-                hybrid_alpha=self.hybrid_alpha
+                hybrid_alpha=self.hybrid_alpha,
+                candidate_limit=self.candidate_limit
             )
 
     def get_explainer_for_mode(
         self,
         mode: str,
-        alpha: Optional[float] = None
+        alpha: Optional[float] = None,
+        candidate_limit: Optional[int] = None
     ) -> NoveltyExplainer:
         """Return the appropriate explainer for the requested mode and alpha."""
         mode_clean = str(mode).strip().lower()
@@ -167,6 +181,8 @@ class NoveltyService:
             mode_clean = "tuned_hybrid"
         elif mode_clean not in {"tfidf", "hybrid"}:
             raise ValueError(f"Invalid scoring mode: '{mode}'. Must be 'tfidf', 'hybrid', or 'tuned_hybrid'.")
+
+        effective_limit = int(candidate_limit if candidate_limit is not None else self.candidate_limit)
 
         if mode_clean == "tfidf":
             return self._tfidf_explainer
@@ -177,14 +193,19 @@ class NoveltyService:
             effective_alpha = float(alpha if alpha is not None else self.tuned_alpha)
             if not (0.0 <= effective_alpha <= 1.0):
                 raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {effective_alpha}")
-            if self._tuned_explainer is None or self._tuned_explainer.hybrid_alpha != effective_alpha:
+            if (
+                self._tuned_explainer is None
+                or self._tuned_explainer.hybrid_alpha != effective_alpha
+                or getattr(self._tuned_explainer, "candidate_limit", 50) != effective_limit
+            ):
                 self._tuned_explainer = NoveltyExplainer(
                     tfidf_extractor=self.tfidf_extractor,
                     model=self.candidate_model,
                     projects_df=self.tfidf_extractor.projects_df,
                     dense_extractor=self.dense_extractor,
                     scoring_mode="tuned_hybrid",
-                    hybrid_alpha=effective_alpha
+                    hybrid_alpha=effective_alpha,
+                    candidate_limit=effective_limit
                 )
             return self._tuned_explainer
 
@@ -193,14 +214,19 @@ class NoveltyService:
         if not (0.0 <= effective_alpha <= 1.0):
             raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {effective_alpha}")
 
-        if self._hybrid_explainer is None or self._hybrid_explainer.hybrid_alpha != effective_alpha:
+        if (
+            self._hybrid_explainer is None
+            or self._hybrid_explainer.hybrid_alpha != effective_alpha
+            or getattr(self._hybrid_explainer, "candidate_limit", 50) != effective_limit
+        ):
             self._hybrid_explainer = NoveltyExplainer(
                 tfidf_extractor=self.tfidf_extractor,
                 model=self.candidate_model,
                 projects_df=self.tfidf_extractor.projects_df,
                 dense_extractor=self.dense_extractor,
                 scoring_mode="hybrid",
-                hybrid_alpha=effective_alpha
+                hybrid_alpha=effective_alpha,
+                candidate_limit=effective_limit
             )
         return self._hybrid_explainer
 
@@ -210,12 +236,14 @@ class NoveltyService:
         top_k: int = 5,
         scoring_mode: Optional[str] = None,
         hybrid_alpha: Optional[float] = None,
+        candidate_limit: Optional[int] = None,
         exclude_self: bool = True
     ) -> Dict[str, Any]:
         """
         Evaluate candidate proposal against the historical reference corpus.
         Does NOT save the proposal to the database or mutate the reference corpus.
-        Allows overriding scoring mode ('tfidf', 'hybrid', or 'tuned_hybrid') and alpha per request.
+        Allows overriding scoring mode ('tfidf', 'hybrid', or 'tuned_hybrid'), alpha,
+        and Stage 1 candidate limit per request.
         """
         mode_raw = (scoring_mode or self.scoring_mode).lower()
         if mode_raw in {"tuned", "tuned_hybrid"}:
@@ -234,7 +262,9 @@ class NoveltyService:
         else:
             alpha = 1.0
 
-        active_explainer = self.get_explainer_for_mode(mode=mode, alpha=alpha)
+        limit = int(candidate_limit if candidate_limit is not None else self.candidate_limit)
+
+        active_explainer = self.get_explainer_for_mode(mode=mode, alpha=alpha, candidate_limit=limit)
 
         candidate_copy = dict(candidate_dict)
         if not candidate_copy.get("project_id"):
@@ -246,7 +276,8 @@ class NoveltyService:
             top_k=top_k,
             exclude_self=exclude_self,
             scoring_mode=mode,
-            hybrid_alpha=alpha
+            hybrid_alpha=alpha,
+            candidate_limit=limit
         )
 
         # Ensure model_version is populated
@@ -277,6 +308,7 @@ def get_novelty_service(
     tuned_config_path: Optional[Union[str, Path]] = None,
     scoring_mode: Optional[str] = None,
     hybrid_alpha: Optional[float] = None,
+    candidate_limit: Optional[int] = None,
     force_reload: bool = False
 ) -> NoveltyService:
     """Retrieve or initialize the singleton NoveltyService instance."""
@@ -289,7 +321,8 @@ def get_novelty_service(
             candidate_path=candidate_path,
             tuned_config_path=tuned_config_path,
             scoring_mode=scoring_mode,
-            hybrid_alpha=hybrid_alpha
+            hybrid_alpha=hybrid_alpha,
+            candidate_limit=candidate_limit
         )
     return _novelty_service_instance
 

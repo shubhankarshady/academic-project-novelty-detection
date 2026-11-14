@@ -97,7 +97,7 @@ def get_health(
 ):
     """
     Check API health and report reference corpus size vs. submitted user proposals count,
-    including the active scoring mode and configured hybrid alpha.
+    including the active scoring mode, hybrid alpha, and two-stage retrieval settings.
     """
     ref_count = service.reference_corpus_size
     sub_count = db.count_proposals()
@@ -108,12 +108,14 @@ def get_health(
         model_loaded=True,
         active_scoring_mode=service.scoring_mode,
         hybrid_alpha=service.hybrid_alpha,
+        retrieval_architecture="two_stage",
+        two_stage_candidate_limit=service.candidate_limit,
         available_scoring_modes=["tfidf", "hybrid", "tuned_hybrid"],
         tuned_hybrid_config=service.tuned_config,
         message=(
             f"Active. Reference corpus contains {ref_count} baseline historical projects. "
             f"Database contains {sub_count} user-submitted proposals. "
-            f"Active scoring mode: {service.scoring_mode} (alpha={service.hybrid_alpha:.2f})."
+            f"Active scoring mode: {service.scoring_mode} (alpha={service.hybrid_alpha:.2f}, candidate_limit={service.candidate_limit})."
         )
     )
 
@@ -123,13 +125,14 @@ def score_proposal(
     proposal: ProposalInput,
     mode: Optional[str] = Query(None, description="Optional override for scoring mode: 'tfidf', 'hybrid', or 'tuned_hybrid'"),
     alpha: Optional[float] = Query(None, description="Optional override for hybrid alpha between 0.0 and 1.0"),
+    candidate_limit: Optional[int] = Query(None, description="Optional override for Stage 1 candidate shortlist limit (default: 50)"),
     service: NoveltyService = Depends(get_novelty_service)
 ):
     """
     Evaluate a candidate academic proposal against the historical reference corpus.
     Does NOT save the proposal to SQLite or mutate the reference corpus.
     Candidate is strictly excluded from matching itself.
-    Supports selecting between production 'tfidf' mode and experimental 'hybrid' mode.
+    Uses Two-Stage Retrieval (Top 50 TF-IDF shortlist evaluated with dense embeddings).
     """
     try:
         candidate_dict = proposal.model_dump()
@@ -137,7 +140,8 @@ def score_proposal(
             candidate_dict=candidate_dict,
             top_k=5,
             scoring_mode=mode,
-            hybrid_alpha=alpha
+            hybrid_alpha=alpha,
+            candidate_limit=candidate_limit
         )
         return result
     except ValueError as e:

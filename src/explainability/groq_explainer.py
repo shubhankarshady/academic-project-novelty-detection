@@ -24,12 +24,17 @@ from datetime import datetime
 # Optional dotenv loading if .env file exists
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    from pathlib import Path
+    _ROOT_ENV = Path(__file__).resolve().parent.parent.parent / ".env"
+    if _ROOT_ENV.exists():
+        load_dotenv(dotenv_path=_ROOT_ENV)
+    else:
+        load_dotenv()
 except ImportError:
     pass
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 DEFAULT_TIMEOUT_SECONDS = float(os.getenv("GROQ_TIMEOUT_SECONDS", "30.0"))
 
 
@@ -76,7 +81,7 @@ class GroqExplainer:
         model: Optional[str] = None,
         timeout: float = DEFAULT_TIMEOUT_SECONDS
     ):
-        self._api_key = api_key or os.getenv("GROQ_API_KEY")
+        self._api_key = api_key if api_key is not None else os.getenv("GROQ_API_KEY")
         self.model = model or DEFAULT_GROQ_MODEL
         self.timeout = timeout
         # In-memory explanation cache: cache_key -> (result_dict, timestamp)
@@ -85,7 +90,9 @@ class GroqExplainer:
     @property
     def api_key(self) -> Optional[str]:
         # Lazily check environment if not set at init
-        return self._api_key or os.getenv("GROQ_API_KEY")
+        if self._api_key is not None:
+            return self._api_key
+        return os.getenv("GROQ_API_KEY")
 
     def is_available(self) -> bool:
         """Check if Groq API key is present."""
@@ -307,8 +314,19 @@ class GroqExplainer:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(GROQ_API_URL, json=payload, headers=headers)
 
+                # Graceful fallback if requested model is decommissioned or not found
+                if (response.status_code == 404 or (response.status_code == 400 and ("model" in response.text.lower() or "decommissioned" in response.text.lower()))) and payload.get("model") != "qwen/qwen3.8-27b":
+                    payload["model"] = "qwen/qwen3.8-27b"
+                    self.model = "qwen/qwen3.8-27b"
+                    response = await client.post(GROQ_API_URL, json=payload, headers=headers)
+
                 if response.status_code == 401 or response.status_code == 403:
-                    raise GroqAPIError("Authentication failed with Groq API. Please verify GROQ_API_KEY.", status_code=401)
+                    raise GroqAPIError(
+                        "Authentication failed with Groq API (HTTP 401: Invalid API Key). "
+                        "Your GROQ_API_KEY in the .env file is either invalid, revoked, or expired. "
+                        "Please obtain a new free key from https://console.groq.com/keys and update GROQ_API_KEY in .env.",
+                        status_code=401
+                    )
                 elif response.status_code == 429:
                     raise GroqRateLimitError()
                 elif response.status_code >= 500:

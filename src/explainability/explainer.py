@@ -12,6 +12,7 @@ is similar to historical projects in the corpus:
 """
 
 from typing import Dict, List, Any, Optional, Tuple, Union
+import os
 import re
 import numpy as np
 import pandas as pd
@@ -184,7 +185,8 @@ class NoveltyExplainer:
         projects_df: Optional[pd.DataFrame] = None,
         dense_extractor: Optional[Any] = None,
         scoring_mode: str = "tfidf",
-        hybrid_alpha: float = 0.50
+        hybrid_alpha: float = 0.50,
+        candidate_limit: int = 50
     ):
         self.tfidf_extractor = tfidf_extractor
         self.projects_df = (
@@ -213,6 +215,15 @@ class NoveltyExplainer:
         if not (0.0 <= alpha_val <= 1.0):
             raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {hybrid_alpha}")
         self.hybrid_alpha = alpha_val
+
+        # Configurable Stage 1 candidate limit (default: 50)
+        env_limit = os.getenv("TWO_STAGE_CANDIDATE_LIMIT")
+        try:
+            self.candidate_limit = int(env_limit) if env_limit is not None else int(candidate_limit)
+        except (ValueError, TypeError):
+            self.candidate_limit = 50
+        if self.candidate_limit <= 0:
+            self.candidate_limit = 50
 
         self.dense_extractor = dense_extractor
         if self.scoring_mode in {"hybrid", "tuned_hybrid"} and self.dense_extractor is None:
@@ -476,18 +487,23 @@ class NoveltyExplainer:
     def explain_proposal(
         self,
         candidate_dict: Dict[str, Any],
-        top_k: int = 3,
+        top_k: int = 5,
         exclude_self: bool = True,
         scoring_mode: Optional[str] = None,
-        hybrid_alpha: Optional[float] = None
+        hybrid_alpha: Optional[float] = None,
+        candidate_limit: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Rank historical projects against candidate proposal, exclude self-matching,
         and generate explainable reports for the top K similar prior projects.
-        Supports both TF-IDF production mode and configurable hybrid scoring mode.
+        Implements a Two-Stage Candidate Retrieval Architecture:
+          Stage 1: Lexical TF-IDF candidate retrieval across all eligible corpus projects (Top 50 shortlisted).
+          Stage 2: Dense transformer semantic similarity evaluated ONLY on the shortlisted candidates.
+          Stage 3: Hybrid 60:40 ranking and top-K selection.
+          Stage 4: Corpus-relative novelty score calculation and section evidence generation.
         """
         mode = (scoring_mode or self.scoring_mode).lower()
-        if mode in {"tuned", "tuned_hybrid"}:
+        if mode in {"tuned", "tuned_hybrid", "two_stage", "two_stage_hybrid"}:
             mode = "tuned_hybrid"
         elif mode not in {"tfidf", "hybrid"}:
             raise ValueError(f"Unsupported scoring_mode: '{mode}'. Must be 'tfidf', 'hybrid', or 'tuned_hybrid'.")
@@ -496,18 +512,66 @@ class NoveltyExplainer:
         if not (0.0 <= alpha <= 1.0):
             raise ValueError(f"hybrid_alpha must be between 0.0 and 1.0, got: {alpha}")
 
+        limit = int(candidate_limit if candidate_limit is not None else self.candidate_limit)
+        if limit <= 0:
+            limit = 50
+
         if mode in {"hybrid", "tuned_hybrid"} and self.dense_extractor is None:
             raise RuntimeError(
                 "Hybrid scoring mode requested, but no SectionDenseEmbeddingExtractor is loaded. "
                 "Ensure dense model artifact is initialized."
             )
 
-        # 1. Compute lexical candidate similarities across all corpus projects
+        # ---------------------------------------------------------------------
+        # Stage 1: TF-IDF Candidate Retrieval across all reference corpus projects
+        # ---------------------------------------------------------------------
         sim_df = self.tfidf_extractor.compute_candidate_similarity(candidate_dict)
 
-        # 2. If hybrid or tuned_hybrid mode, compute semantic similarities and convex combination
+        # Merge metadata (project_title, domain), restricting strictly to active projects_df
+        merged_df = pd.merge(
+            sim_df,
+            self.projects_df[["project_id", "project_title", "domain"]],
+            on="project_id",
+            how="inner"
+        )
+
+        # Exclude self-matching strictly by reliable, explicit project identity
+        eligible_df = merged_df.copy()
+        candidate_id = candidate_dict.get("project_id")
+
+        if exclude_self and candidate_id:
+            cand_id_str = str(candidate_id).strip().lower()
+            if cand_id_str and cand_id_str != "new_proposal":
+                exclude_mask = eligible_df["project_id"].astype(str).str.strip().str.lower() == cand_id_str
+                eligible_df = eligible_df[~exclude_mask]
+
+        if len(eligible_df) == 0:
+            raise ValueError("No eligible historical projects available for comparison after self-exclusion.")
+
+        stage1_candidates_evaluated = len(eligible_df)
         cand_dense_embeddings: Optional[Dict[str, Optional[np.ndarray]]] = None
+
         if mode in {"hybrid", "tuned_hybrid"}:
+            # Stage 1: Rank all eligible projects by TF-IDF similarity to select candidate matches (Top 50)
+            X_tfidf = eligible_df[self.feature_names].to_numpy(dtype=float)
+            tfidf_raw = self.intercept_ + (X_tfidf @ self.coef_)
+            tfidf_clipped = np.clip(tfidf_raw, 0.0, 4.0)
+            eligible_df["tfidf_score"] = tfidf_clipped
+            eligible_df["tfidf_raw"] = tfidf_raw
+
+            ranked_stage1_df = eligible_df.sort_values(
+                by=["tfidf_score", "tfidf_raw", "project_id"],
+                ascending=[False, False, True]
+            ).reset_index(drop=True)
+
+            # Select Top 50 candidates (or fewer if corpus is smaller)
+            shortlist_n = min(limit, len(ranked_stage1_df))
+            shortlisted_df = ranked_stage1_df.iloc[:shortlist_n].copy().reset_index(drop=True)
+            shortlist_pids = list(shortlisted_df["project_id"])
+
+            # -----------------------------------------------------------------
+            # Stage 2: Semantic Similarity (Restricted ONLY to shortlisted candidates)
+            # -----------------------------------------------------------------
             self.dense_extractor._lazy_load_model()
             cand_dense_embeddings = {}
             for sec_name, col in self.section_cols.items():
@@ -519,74 +583,84 @@ class NoveltyExplainer:
                 else:
                     cand_dense_embeddings[sec_name] = None
 
+            # Map project IDs to row indices in stored dense embedding matrix
+            shortlist_indices = [
+                self.dense_extractor.project_to_index.get(pid, -1)
+                for pid in shortlist_pids
+            ]
+
             dense_sims = {}
             for sec_name in self.section_names:
                 cand_vec = cand_dense_embeddings[sec_name]
+                clamped_dots = np.zeros(len(shortlist_pids), dtype=float)
                 if cand_vec is not None:
-                    raw_dots = np.dot(self.dense_extractor.embeddings[sec_name], cand_vec)
-                    # Production scoring layer clamps negative semantic cosines to [0.0, 1.0]
-                    clamped_dots = np.clip(raw_dots, 0.0, 1.0)
-                else:
-                    clamped_dots = np.zeros(len(self.dense_extractor.project_ids), dtype=float)
+                    valid_mask = [idx != -1 for idx in shortlist_indices]
+                    if any(valid_mask):
+                        valid_sub_indices = [idx for idx in shortlist_indices if idx != -1]
+                        shortlist_embs = self.dense_extractor.embeddings[sec_name][valid_sub_indices]
+                        raw_dots = np.dot(shortlist_embs, cand_vec)
+                        valid_clamped = np.clip(raw_dots, 0.0, 1.0)
+
+                        v_i = 0
+                        for i, is_valid in enumerate(valid_mask):
+                            if is_valid:
+                                clamped_dots[i] = valid_clamped[v_i]
+                                v_i += 1
                 dense_sims[f"{sec_name}_dense_similarity"] = clamped_dots
 
-            dense_df = pd.DataFrame(dense_sims)
-            dense_df["project_id"] = self.dense_extractor.project_ids
-            sim_df = pd.merge(sim_df, dense_df, on="project_id", how="left")
-
-            # Apply convex combination: alpha * tfidf + (1 - alpha) * dense
+            # -----------------------------------------------------------------
+            # Stage 3: Hybrid Ranking (Fixed 60:40 formula)
+            # -----------------------------------------------------------------
             for sec_name in self.section_names:
                 tf_col = f"{sec_name}_similarity"
                 dn_col = f"{sec_name}_dense_similarity"
-                sim_df[f"{sec_name}_lexical_similarity"] = sim_df[tf_col]
-                sim_df[f"{sec_name}_semantic_similarity"] = sim_df[dn_col]
-                sim_df[tf_col] = alpha * sim_df[tf_col] + (1.0 - alpha) * sim_df[dn_col]
+                shortlisted_df[f"{sec_name}_lexical_similarity"] = shortlisted_df[tf_col]
+                shortlisted_df[f"{sec_name}_semantic_similarity"] = dense_sims[dn_col]
+                shortlisted_df[tf_col] = alpha * shortlisted_df[tf_col] + (1.0 - alpha) * dense_sims[dn_col]
 
-        # Merge additional metadata from projects_df if needed
-        merged_df = pd.merge(
-            sim_df,
-            self.projects_df[["project_id", "project_title", "domain"]],
-            on="project_id",
-            how="left"
-        )
+            X_hybrid = shortlisted_df[self.feature_names].to_numpy(dtype=float)
+            hybrid_raw = self.intercept_ + (X_hybrid @ self.coef_)
+            hybrid_clipped = np.clip(hybrid_raw, 0.0, 4.0)
 
-        # 3. Compute model predictions across all projects
-        X = merged_df[self.feature_names].to_numpy(dtype=float)
-        raw_preds = self.intercept_ + (X @ self.coef_)
-        clipped_preds = np.clip(raw_preds, 0.0, 4.0)
+            shortlisted_df["predicted_similarity"] = hybrid_clipped
+            shortlisted_df["raw_prediction"] = hybrid_raw
 
-        merged_df["predicted_similarity"] = clipped_preds
-        merged_df["raw_prediction"] = raw_preds
+            # Sort shortlisted candidates by descending hybrid score
+            ranked_df = shortlisted_df.sort_values(
+                by=["predicted_similarity", "raw_prediction", "project_id"],
+                ascending=[False, False, True]
+            ).reset_index(drop=True)
 
-        # 4. Exclude self-matching strictly by reliable, explicit project identity
-        eligible_df = merged_df.copy()
-        candidate_id = candidate_dict.get("project_id")
+            stage2_shortlist_size = shortlist_n
+            retrieval_stage_str = "two_stage"
+        else:
+            # Single-stage TF-IDF baseline mode
+            X = eligible_df[self.feature_names].to_numpy(dtype=float)
+            raw_preds = self.intercept_ + (X @ self.coef_)
+            clipped_preds = np.clip(raw_preds, 0.0, 4.0)
 
-        if exclude_self and candidate_id:
-            cand_id_str = str(candidate_id).strip().lower()
-            # Exclude only if candidate_id is an explicit reference ID and not an unassigned placeholder
-            if cand_id_str and cand_id_str != "new_proposal":
-                exclude_mask = eligible_df["project_id"].astype(str).str.strip().str.lower() == cand_id_str
-                eligible_df = eligible_df[~exclude_mask]
+            eligible_df["predicted_similarity"] = clipped_preds
+            eligible_df["raw_prediction"] = raw_preds
 
-        if len(eligible_df) == 0:
-            raise ValueError("No eligible historical projects available for comparison after self-exclusion.")
+            ranked_df = eligible_df.sort_values(
+                by=["predicted_similarity", "raw_prediction", "project_id"],
+                ascending=[False, False, True]
+            ).reset_index(drop=True)
 
-        # 5. Deterministic ranking: primary by predicted_similarity (descending),
-        # secondary by raw_prediction (descending), tertiary by project_id (ascending)
-        ranked_df = eligible_df.sort_values(
-            by=["predicted_similarity", "raw_prediction", "project_id"],
-            ascending=[False, False, True]
-        ).reset_index(drop=True)
+            stage2_shortlist_size = 0
+            retrieval_stage_str = "stage1_tfidf_only"
+
+        # ---------------------------------------------------------------------
+        # Stage 4: Novelty Evaluation
+        # ---------------------------------------------------------------------
         top_k_actual = min(top_k, len(ranked_df))
         top_matches_df = ranked_df.iloc[:top_k_actual]
 
-        # 6. Overall Novelty Assessment
         max_sim = float(ranked_df.iloc[0]["predicted_similarity"])
         overall_novelty_pct = calculate_novelty_score(max_sim)
         novelty_tier = get_novelty_level(overall_novelty_pct)
 
-        # 7. Generate detailed explanations for each top match
+        # Generate detailed section-level evidence and keyword overlap for top matches
         match_explanations = []
         for _, row in top_matches_df.iterrows():
             hist_proj_row = self.projects_df[self.projects_df["project_id"] == row["project_id"]].iloc[0]
@@ -601,7 +675,7 @@ class NoveltyExplainer:
 
         if mode == "tuned_hybrid":
             formula_str = (
-                f"tuned_hybrid_similarity = {alpha:.2f} * tfidf_similarity + {1.0 - alpha:.2f} * semantic_similarity; "
+                f"two_stage_hybrid_similarity = {alpha:.2f} * tfidf_similarity + {1.0 - alpha:.2f} * semantic_similarity; "
                 "predicted_similarity = sum(w_i * hybrid_similarity_i) + intercept"
             )
             model_ver_str = "phase5_tuned_hybrid_v1.0"
@@ -622,7 +696,11 @@ class NoveltyExplainer:
             "hybrid_alpha": round(alpha, 4) if mode in {"hybrid", "tuned_hybrid"} else 1.0,
             "scoring_formula": formula_str,
             "model_version": model_ver_str,
-            "corpus_size_evaluated": len(eligible_df),
+            "retrieval_stage": retrieval_stage_str,
+            "stage1_candidates_evaluated": stage1_candidates_evaluated,
+            "stage2_shortlist_size": stage2_shortlist_size,
+            "candidate_limit": limit,
+            "corpus_size_evaluated": stage1_candidates_evaluated,
             "max_similarity_score": round(max_sim, 4),
             "overall_novelty_score_pct": round(overall_novelty_pct, 2),
             "novelty_assessment_tier": novelty_tier,

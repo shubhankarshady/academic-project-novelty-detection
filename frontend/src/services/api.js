@@ -78,7 +78,7 @@ export async function getHealth() {
  * @param {string|null} mode - 'tfidf', 'hybrid', or 'tuned_hybrid'
  * @param {number|null} alpha - Optional alpha parameter
  */
-export async function scoreProposal(proposalData, mode = null, alpha = null) {
+export async function scoreProposal(proposalData, mode = 'tuned_hybrid', alpha = null) {
   try {
     const params = new URLSearchParams();
     if (mode) params.append('mode', mode);
